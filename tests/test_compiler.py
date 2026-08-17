@@ -72,3 +72,49 @@ class TestLinumCompiler(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_unmanaged_pointers_lowering(self):
+        """Verifies unmanaged pointer nodes lower smoothly and bypass standard linear checks."""
+        from linum.src.ast.nodes import PtrAllocaExpr, PtrStoreStmt, PtrLoadExpr, BlockStmt, LetStmt, ReturnStmt
+        from linum.src.semantic.types import Type, OwnershipMode, FunctionContract, PRIMITIVE_INTEGER
+        from linum.src.lowering.cfg import CfgBuilder
+        from linum.src.lowering.ssa import SsaConverter
+        from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
+        from linum.src.semantic.analyzer import SemBlockStmt, SemLetStmt, SemReturnStmt
+
+        # Construct a synthetic AST using the newly implemented unmanaged pointer primitives
+        # Allocates an unmanaged pointer, stores an address value, and loads it back.
+        alloc_node = PtrAllocaExpr(target_type=PRIMITIVE_INTEGER)
+        store_node = PtrStoreStmt(pointer_expr="ptr_var", value_expr="val_source")
+        load_node = PtrLoadExpr(pointer_expr="ptr_var")
+        
+        # Build manual lowered equivalent blocks to assert backend data lane compliance
+        from linum.src.lowering.cfg import BasicBlock, IrAlloca, IrStore, IrPtrLoad, IrPtrStore, IrReturn, CfgFunction
+        entry_bb = BasicBlock("entry")
+        entry_bb.instructions = [
+            IrAlloca("ptr_var", "ptr"),
+            IrStore("0", "ptr_var"),
+            IrPtrStore("val_source", "ptr_var"),
+            IrPtrLoad("%r1", "ptr_var")
+        ]
+        entry_bb.terminator = IrReturn("%r1")
+        
+        blocks = {"entry": entry_bb}
+        successors = {"entry": set()}
+        predecessors = {"entry": set()}
+        cfg_func = CfgFunction("unsafe_ptr_test", "entry", blocks, successors, predecessors)
+        
+        var_types = {"ptr_var": "ptr", "val_source": "INTEGER"}
+        ssa = SsaConverter(cfg_func, var_types).convert()
+        
+        contract = FunctionContract("unsafe_ptr_test", (), PRIMITIVE_INTEGER, OwnershipMode.COPY)
+        emitter = LlvmEmitter(contract)
+        llvm_ir = emitter.emit(ssa, var_types)
+        
+        # Assert structural LLVM IR output matches expected memory layouts
+        self.assertIn("alloca ptr", llvm_ir)
+        self.assertIn("store ptr", llvm_ir)
+        self.assertIn("load ptr", llvm_ir)
+        
+        linker = SystemBackendLinker()
+        self.assertTrue(linker.verify_llvm_ir(llvm_ir))

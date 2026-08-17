@@ -3,7 +3,7 @@ from typing import Dict, List, Set, Tuple, Optional
 import subprocess
 import os
 from linum.src.semantic.types import Type, OwnershipMode, FunctionContract, PRIMITIVE_BOOLEAN, PRIMITIVE_INTEGER
-from linum.src.lowering.cfg import IrInstruction, IrAlloca, IrParam, IrLoad, IrStore, IrCall, IrDrop, IrBranch, IrCondBranch, IrReturn
+from linum.src.lowering.cfg import *
 from linum.src.lowering.ssa import SsaValue, SsaPhi, SsaBlock, SsaFunction
 
 class LlvmEmitter:
@@ -106,6 +106,15 @@ class LlvmEmitter:
 
         for bb in ssa_func.blocks.values():
             for instr in bb.instructions:
+                if instr.__class__.__name__ == "IrPtrLoad":
+                    ptr_clean = instr.pointer_var.lstrip('%')
+                    self.lines.append(f"  {self.format_reg(instr.target_reg)} = load ptr, ptr %{ptr_clean}, align 8")
+                    continue
+                elif instr.__class__.__name__ == "IrPtrStore":
+                    ptr_clean = instr.pointer_var.lstrip('%')
+                    val_formatted = self.format_reg(instr.value_reg)
+                    self.lines.append(f"  store ptr {val_formatted}, ptr %{ptr_clean}, align 8")
+                    continue
                 if isinstance(instr, IrLoad):
                     collect_operand(instr.src_var)
 
@@ -159,6 +168,15 @@ class LlvmEmitter:
                 
             # Body instructions translation loop
             for instr in bb.instructions:
+                if instr.__class__.__name__ == "IrPtrLoad":
+                    ptr_clean = instr.pointer_var.lstrip('%')
+                    self.lines.append(f"  {self.format_reg(instr.target_reg)} = load ptr, ptr %{ptr_clean}, align 8")
+                    continue
+                elif instr.__class__.__name__ == "IrPtrStore":
+                    ptr_clean = instr.pointer_var.lstrip('%')
+                    val_formatted = self.format_reg(instr.value_reg)
+                    self.lines.append(f"  store ptr {val_formatted}, ptr %{ptr_clean}, align 8")
+                    continue
                 if isinstance(instr, IrParam):
                     var_base = instr.param_name.lstrip('%')
                     ty_str = "i1" if ("cond" in var_base or var_types.get(var_base) == "BOOLEAN") else "i64"

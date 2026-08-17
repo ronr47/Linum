@@ -53,6 +53,12 @@ class CfgFunction:
                 self.predecessors[bb.terminator.then_label].add(lbl)
                 self.predecessors[bb.terminator.else_label].add(lbl)
 
+
+@dataclass(frozen=True)
+class IrPtrLoad(IrInstruction): target_reg: str; pointer_var: str
+@dataclass(frozen=True)
+class IrPtrStore(IrInstruction): value_reg: str; pointer_var: str
+
 class CfgBuilder:
     def __init__(self):
         self.blocks: Dict[str, BasicBlock] = {}
@@ -105,6 +111,10 @@ class CfgBuilder:
             self.emit_instr(IrLoad(tmp_reg, node.source))
             self.emit_instr(IrStore(tmp_reg, node.destination))
         elif isinstance(node, SemExprStmt): self.lower_expression(node.expr)
+        elif node.__class__.__name__ == "PtrStoreStmt":
+            val_reg = self.lower_expression(node.value_expr)
+            ptr_name = node.pointer_expr.name if hasattr(node.pointer_expr, "name") else str(node.pointer_expr)
+            self.emit_instr(IrPtrStore(value_reg=val_reg, pointer_var=ptr_name))
         elif isinstance(node, SemReturnStmt):
             ret_reg = self.lower_expression(node.expr) if node.expr is not None else None
             for drop in node.scope_drops_at_return: self.emit_instr(IrDrop(drop.name, drop.type.name))
@@ -138,6 +148,13 @@ class CfgBuilder:
         reg = self.new_reg()
         if isinstance(node, SemIdentifierExpr): self.emit_instr(IrLoad(reg, node.name))
         elif isinstance(node, SemConsumeExpr): self.emit_instr(IrLoad(reg, node.source))
+        elif node.__class__.__name__ == "PtrLoadExpr":
+            ptr_name = node.pointer_expr.name if hasattr(node.pointer_expr, "name") else str(node.pointer_expr)
+            self.emit_instr(IrPtrLoad(target_reg=reg, pointer_var=ptr_name))
+        elif node.__class__.__name__ == "PtrAllocaExpr":
+            # Direct raw pointer stack reservation
+            self.emit_instr(IrAlloca(var_name=reg.lstrip('%'), type_name="ptr"))
+            self.emit_instr(IrStore(src_reg="0", dest_var=reg.lstrip('%')))
         elif isinstance(node, SemCallExpr):
             arg_regs = [self.lower_expression(arg.expr) for arg in node.arguments]
             target_reg = reg if node.result_type is not None else None
