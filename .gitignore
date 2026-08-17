@@ -1,3 +1,14 @@
 .release_snapshot/
 finalize_linum.sh
 tatus
+
+# compiler validation outputs
+.audit_*/
+.debug_snapshots/
+.toolchain/
+*.ll
+*.bc
+*.o
+*.verified.ll
+__pycache__/
+**/__pycache__/
