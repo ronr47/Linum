@@ -37,6 +37,8 @@ from linum.src.semantic.analyzer import (
 
 
 class ASTNode:
+    span: SourceSpan = UNKNOWN_SPAN
+
     def check_type(self, ctx: SymbolContext) -> Type:
         raise NotImplementedError()
 
