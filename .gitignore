@@ -12,3 +12,6 @@ tatus
 *.verified.ll
 __pycache__/
 **/__pycache__/
+
+# local python environment
+.venv/
