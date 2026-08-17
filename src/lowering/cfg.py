@@ -160,3 +160,82 @@ class CfgVerifier:
             elif isinstance(bb.terminator, IrCondBranch):
                 if bb.terminator.then_label not in blocks: raise ValueError(f"CFG Verification Failed: Block '{label}' targets non-existent then label '{bb.terminator.then_label}'.")
                 if bb.terminator.else_label not in blocks: raise ValueError(f"CFG Verification Failed: Block '{label}' targets non-existent else label '{bb.terminator.else_label}'.")
+
+class LiveVariableAnalyzer:
+    def __init__(self, cfg: CfgFunction):
+        self.cfg = cfg
+        self.cfg.compute_topology()
+        self.live_in: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self.live_out: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self.defs: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self.uses: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self._compute_local_sets()
+
+    def _extract_vars(self, s: Optional[str]) -> List[str]:
+        if not s or not s.startswith("%"): return []
+        return [s.lstrip('%').split('.')[0].split('_')[0]]
+
+    def _compute_local_sets(self) -> None:
+        for lbl, bb in self.cfg.blocks.items():
+            for instr in bb.instructions:
+                # Process instruction-specific defs and uses
+                if isinstance(instr, IrLoad):
+                    srcs = self._extract_vars(instr.src_var)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                    t_regs = self._extract_vars(instr.target_reg)
+                    for t in t_regs: self.defs[lbl].add(t)
+                elif isinstance(instr, IrStore):
+                    srcs = self._extract_vars(instr.src_reg)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                    d_vars = self._extract_vars(instr.dest_var)
+                    for d in d_vars:
+                        if "." in instr.dest_var or "_" in instr.dest_var:
+                            self.defs[lbl].add(d)
+                        else:
+                            if d not in self.defs[lbl]: self.uses[lbl].add(d)
+                elif isinstance(instr, IrParam):
+                    t_regs = self._extract_vars(instr.target_reg)
+                    for t in t_regs: self.defs[lbl].add(t)
+                elif isinstance(instr, IrCall):
+                    if instr.target_reg:
+                        t_regs = self._extract_vars(instr.target_reg)
+                        for t in t_regs: self.defs[lbl].add(t)
+                    for arg in getattr(instr, "args_regs", ()):
+                        srcs = self._extract_vars(str(arg))
+                        for src in srcs:
+                            if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                elif isinstance(instr, IrDrop):
+                    srcs = self._extract_vars(instr.var_name)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+
+            # Process block terminator uses
+            if bb.terminator:
+                if isinstance(bb.terminator, IrCondBranch):
+                    srcs = self._extract_vars(bb.terminator.cond_reg)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                elif isinstance(bb.terminator, IrReturn) and bb.terminator.val_reg:
+                    srcs = self._extract_vars(bb.terminator.val_reg)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+
+    def analyze_lifetimes(self) -> None:
+        changed = True
+        while changed:
+            changed = False
+            for lbl in sorted(self.cfg.blocks.keys(), reverse=True):
+                new_out = set()
+                for succ in self.cfg.successors.get(lbl, set()):
+                    new_out.update(self.live_in[succ])
+                
+                if new_out != self.live_out[lbl]:
+                    self.live_out[lbl] = new_out
+                    changed = True
+                
+                new_in = self.uses[lbl].union(self.live_out[lbl] - self.defs[lbl])
+                if new_in != self.live_in[lbl]:
+                    self.live_in[lbl] = new_in
+                    changed = True
