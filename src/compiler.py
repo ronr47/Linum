@@ -64,6 +64,12 @@ class LinumCompiler:
 
         CfgVerifier.verify(cfg.blocks)
 
+        # Execute Non-Lexical Lifetime dataflow analysis pass over the functional CFG topology
+        from linum.src.lowering.cfg import LiveVariableAnalyzer
+        nll_analyzer = LiveVariableAnalyzer(cfg)
+        nll_analyzer.analyze_lifetimes()
+        nll_analyzer.validate_use_after_live_range()
+
         var_types: Dict[str, str] = {}
 
         for name in getattr(cfg, "variables", []):

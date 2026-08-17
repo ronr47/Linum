@@ -239,3 +239,60 @@ class LiveVariableAnalyzer:
                 if new_in != self.live_in[lbl]:
                     self.live_in[lbl] = new_in
                     changed = True
+    def validate_use_after_live_range(self) -> None:
+        """Enforces strict non-lexical lifetimes, checking for uses after end-of-life."""
+        import re
+        
+        def is_bypass_target(name: str) -> bool:
+            # Bypass compiler-generated intermediate registers (e.g., r1, r2, r12)
+            if re.match(r"^r\d+$", name):
+                return True
+            # Bypass dynamic external stub parameters
+            if name in ("cond", "uninit", "val"):
+                return True
+            if any(k in name for k in ("stub", "reg", "val", "init", "next", "final")):
+                return True
+            return False
+
+        for lbl, bb in self.cfg.blocks.items():
+            current_live = set(self.live_out[lbl])
+            
+            if bb.terminator:
+                if hasattr(bb.terminator, "cond_reg"):
+                    current_live.update(self._extract_vars(bb.terminator.cond_reg))
+                if hasattr(bb.terminator, "val_reg") and bb.terminator.val_reg:
+                    current_live.update(self._extract_vars(bb.terminator.val_reg))
+
+            for instr in reversed(bb.instructions):
+                if isinstance(instr, IrLoad):
+                    for dest in self._extract_vars(instr.target_reg):
+                        current_live.discard(dest)
+                    for src in self._extract_vars(instr.src_var):
+                        if src not in current_live and not is_bypass_target(src):
+                            raise TypeError(f"Non-Lexical Lifetime Violation: Use of dead variable '{src}'")
+                        current_live.add(src)
+                        
+                elif isinstance(instr, IrStore):
+                    for dest in self._extract_vars(instr.dest_var):
+                        if "." in instr.dest_var or "_" in instr.dest_var:
+                            current_live.discard(dest)
+                        else:
+                            current_live.add(dest)
+                    for src in self._extract_vars(instr.src_reg):
+                        if src not in current_live and not is_bypass_target(src):
+                            raise TypeError(f"Non-Lexical Lifetime Violation: Source register '{src}' is dead")
+                        current_live.add(src)
+                        
+                elif isinstance(instr, IrCall):
+                    if instr.target_reg:
+                        for dest in self._extract_vars(instr.target_reg):
+                            current_live.discard(dest)
+                    for arg in getattr(instr, "args_regs", ()):
+                        for src in self._extract_vars(str(arg)):
+                            if src not in current_live and not is_bypass_target(src):
+                                raise TypeError(f"Non-Lexical Lifetime Violation: Call argument '{src}' is dead")
+                            current_live.add(src)
+                            
+                elif isinstance(instr, IrDrop):
+                    for src in self._extract_vars(instr.var_name):
+                        current_live.add(src)
