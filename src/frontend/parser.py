@@ -1,5 +1,6 @@
 from typing import List, Optional
 from linum.src.frontend.lexer import Token, TokenType
+from linum.src.diagnostics.span import SourceSpan
 from linum.src.semantic.types import Type, OwnershipMode, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN
 from linum.src.ast.nodes import ASTNode, IdentifierExpr, LetStmt, AssignStmt, MoveStmt, ExprStmt, ReturnStmt, BlockStmt, BorrowBlockStmt, IfStmt
 
@@ -11,6 +12,14 @@ class Parser:
     def peek(self) -> Token:
         return self.tokens[self.pos]
         
+    def token_span(self, tok: Token) -> SourceSpan:
+        return SourceSpan(
+            line=tok.line,
+            column=tok.column,
+            length=len(tok.value),
+        )
+
+
     def consume(self, expected: TokenType) -> Token:
         tok = self.peek()
         if tok.type != expected:
@@ -94,8 +103,14 @@ class Parser:
         tok = self.peek()
         if tok.type == TokenType.IDENTIFIER:
             self.consume(TokenType.IDENTIFIER)
-            return IdentifierExpr(tok.value)
+            return IdentifierExpr(
+                tok.value,
+                self.token_span(tok),
+            )
         elif tok.type == TokenType.REG:
             self.consume(TokenType.REG)
-            return IdentifierExpr(tok.value)
+            return IdentifierExpr(
+                tok.value,
+                self.token_span(tok),
+            )
         raise SyntaxError(f"Parser Error: Invalid primary expression token token {tok.type}")

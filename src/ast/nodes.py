@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple, Optional
 
+from linum.src.diagnostics.span import SourceSpan, UNKNOWN_SPAN
+
 from linum.src.semantic.types import (
     Type,
     OwnershipMode,
@@ -50,6 +52,7 @@ class ASTNode:
 @dataclass(frozen=True)
 class IdentifierExpr(ASTNode):
     name: str
+    span: SourceSpan = UNKNOWN_SPAN
 
     def check_type(self, ctx: SymbolContext) -> Type:
         ty, _ = ctx.lookup(self.name)
@@ -106,6 +109,7 @@ class IdentifierExpr(ASTNode):
 @dataclass(frozen=True)
 class ConsumeExpr(ASTNode):
     source: str
+    span: SourceSpan = UNKNOWN_SPAN
 
     def check_type(self, ctx: SymbolContext) -> Type:
         ty, _ = ctx.lookup(self.source)
