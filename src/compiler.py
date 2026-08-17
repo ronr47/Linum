@@ -17,7 +17,7 @@ from linum.src.lowering.cfg import CfgBuilder, CfgVerifier
 from linum.src.lowering.ssa import SsaConverter, SsaVerifier
 from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
 
-from linum.src.diagnostics import LinumDiagnostic, DiagnosticError
+from linum.src.diagnostics import LinumDiagnostic, DiagnosticError, SemanticError
 
 
 class LinumCompiler:
@@ -110,6 +110,16 @@ def compile_source(
             LinumDiagnostic(
                 kind="syntax",
                 message=str(e),
+            )
+        )
+
+    except SemanticError as e:
+        raise DiagnosticError(
+            LinumDiagnostic(
+                kind="semantic",
+                message=e.message,
+                line=e.span.line if e.span else None,
+                column=e.span.column if e.span else None,
             )
         )
 
