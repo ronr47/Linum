@@ -1,0 +1,71 @@
+# linum/src/semantic/types.py
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from typing import Dict, List, Set, Tuple, Optional
+
+class OwnershipMode(Enum):
+    LINEAR = auto()
+    AFFINE = auto()
+    COPY = auto()
+
+@dataclass(frozen=True)
+class Type:
+    name: str
+    mode: OwnershipMode
+    params: Tuple["Type", ...] = ()
+    extra: Optional[str] = None
+
+PRIMITIVE_BOOLEAN = Type("BOOLEAN", OwnershipMode.COPY)
+PRIMITIVE_INTEGER = Type("INTEGER", OwnershipMode.COPY)
+
+class SymbolContext:
+    def __init__(self):
+        self.scopes: List[Dict[str, Tuple[Type, OwnershipMode]]] = [{}]
+        self.functions: Dict[str, "FunctionContract"] = {}
+
+    def enter_scope(self) -> None:
+        self.scopes.append({})
+
+    def exit_scope(self) -> None:
+        if len(self.scopes) <= 1:
+            raise RuntimeError("Internal Compiler Error: Scope stack underflow.")
+        self.scopes.pop()
+
+    def bind(self, name: str, ty: Type, mode: OwnershipMode) -> None:
+        if name in self.scopes[-1]:
+            raise TypeError(f"Redefinition Error: Variable '{name}' already declared.")
+        self.scopes[-1][name] = (ty, mode)
+
+    def lookup(self, name: str) -> Tuple[Type, OwnershipMode]:
+        for scope in reversed(self.scopes):
+            if name in scope:
+                return scope[name]
+        raise TypeError(f"Semantic Error: Identifier '{name}' is completely unbound.")
+
+    def register_function(self, name: str, contract: "FunctionContract") -> None:
+        self.functions[name] = contract
+
+    def lookup_function(self, name: str) -> "FunctionContract":
+        if name not in self.functions:
+            raise TypeError(f"Semantic Error: Function '{name}' is completely unbound.")
+        return self.functions[name]
+
+    def get_current_scope_bindings(self) -> List[str]:
+        return list(self.scopes[-1].keys())
+
+    def is_assignable(self, source: Type, target: Type) -> bool:
+        return source.name == target.name and source.params == target.params and source.extra == target.extra
+
+@dataclass(frozen=True)
+class ParameterContract:
+    name: str
+    type: Type
+    mode: OwnershipMode
+    borrowed: bool = False
+
+@dataclass(frozen=True)
+class FunctionContract:
+    name: str
+    parameters: Tuple[ParameterContract, ...]
+    return_type: Optional[Type]
+    return_mode: Optional[OwnershipMode]
