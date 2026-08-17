@@ -17,40 +17,123 @@ class LlvmEmitter:
         return "ptr"
 
     def format_reg(self, name_or_obj) -> str:
-        """Sanitizes names to guarantee single '%' formatting, eliminating double percents or invalid symbols."""
+        """Convert internal SSA objects into valid LLVM identifiers."""
+
         if hasattr(name_or_obj, "spill"):
             s = name_or_obj.spill()
+
         elif hasattr(name_or_obj, "name"):
-            s = str(name_or_obj.name)
+            base = str(name_or_obj.name)
+
+            # SsaValue(name='val', version=2)
+            # must become val_2
+            if hasattr(name_or_obj, "version"):
+                s = f"{base}_{name_or_obj.version}"
+            else:
+                s = base
+
         else:
             s = str(name_or_obj)
-        
-        s = s.lstrip('%')
-        s = s.replace('.', '_')
+
+        s = s.lstrip("%")
+        s = s.replace(".", "_")
+
+        # Remove Python repr leakage
+        if "SsaValue" in s:
+            raise ValueError(f"SSA formatting leak: {s}")
+
         return f"%{s}"
+
+
+    def resolve_operand(self, value, external_env_vars):
+        # Preserve SSA objects. Converting them to str() destroys
+        # name/version information and leaks Python repr into LLVM IR.
+
+        if hasattr(value, "name"):
+            clean = str(value.name).lstrip("%")
+
+            if clean in external_env_vars:
+                return f"%{clean}_arg"
+
+            return self.format_reg(value)
+
+        clean = str(value).lstrip("%")
+
+        if clean in external_env_vars:
+            return f"%{clean}_arg"
+
+        return self.format_reg(value)
 
     def emit(self, ssa_func: SsaFunction, var_types: Dict[str, str]) -> str:
         self.lines = []
         ret_ty_str = self.map_type(self.contract.return_type) if self.contract.return_type else "void"
         
-        # 1. Harvest formal parameters first
-        param_strs = [f"{self.map_type(p.type)} %{p.name.lstrip('%')}_arg" for p in self.contract.parameters]
-        
-        # 2. Dynamic Option A synthesis: find all IrParam definitions anywhere in the blocks
-        # to expose environment parameters directly in the LLVM function header signature.
+        # Discover external SSA operands that must become ABI arguments.
+        param_strs = [
+            f"{self.map_type(p.type)} %{p.name.lstrip('%')}_arg"
+            for p in self.contract.parameters
+        ]
+
         discovered_env_params = set()
+
+        def normalize_operand(obj):
+            if hasattr(obj, "name"):
+                return str(obj.name).lstrip("%")
+            return str(obj).lstrip("%")
+
+        def collect_operand(obj):
+            name = normalize_operand(obj)
+
+            # Compiler-generated temporaries are r followed by digits.
+            # Synthetic external registers such as r_init/r_next/r_final
+            # must remain ABI inputs.
+            if name.startswith("r") and name[1:].isdigit():
+                return
+
+            # SSA variable versions are internal.
+            if "." in name:
+                return
+
+            # Existing locals are internal.
+            if name in var_types:
+                return
+
+            # SsaValue(name='val', version=x) pollution guard.
+            if "SsaValue" in name:
+                return
+
+            discovered_env_params.add(name)
+
         for bb in ssa_func.blocks.values():
             for instr in bb.instructions:
-                if isinstance(instr, IrParam):
-                    p_name = instr.param_name.lstrip('%')
-                    # Deduplicate against standard contractual function parameters
-                    if not any(p.name.lstrip('%') == p_name for p in self.contract.parameters):
-                        discovered_env_params.add(p_name)
-                        
-        # Append dynamic synthesized environmental context parameters alphabetically
+                if isinstance(instr, IrLoad):
+                    collect_operand(instr.src_var)
+
+                elif isinstance(instr, IrStore):
+                    collect_operand(instr.src_reg)
+
+                elif isinstance(instr, IrParam):
+                    collect_operand(instr.param_name)
+
+                elif hasattr(instr, "src_reg"):
+                    collect_operand(instr.src_reg)
+
+                elif hasattr(instr, "cond_reg"):
+                    collect_operand(instr.cond_reg)
+
+            term = getattr(bb, "terminator", None)
+            if term and hasattr(term, "cond_reg"):
+                collect_operand(term.cond_reg)
+
         for env_p in sorted(discovered_env_params):
-            ty_str = "i1" if ("cond" in env_p or var_types.get(env_p) == "BOOLEAN") else "i64"
-            param_strs.append(f"{ty_str} %{env_p}_arg")
+            ty = "i1" if (
+                "cond" in env_p or
+                var_types.get(env_p) == "BOOLEAN"
+            ) else "i64"
+
+            param_strs.append(
+                f"{ty} %{env_p}_arg"
+            )
 
         self.lines.append(f"define {ret_ty_str} @{ssa_func.name}({', '.join(param_strs)}) {{")
         
@@ -69,7 +152,9 @@ class LlvmEmitter:
                 
                 inc_strs = []
                 for p_lbl, v_val in phi.incomings:
-                    inc_strs.append(f"[ {self.format_reg(v_val)}, %{p_lbl} ]")
+                    inc_strs.append(
+                        f"[ {self.resolve_operand(v_val, discovered_env_params)}, %{p_lbl} ]"
+                    )
                 self.lines.append(f"  {self.format_reg(phi.result)} = phi {ty_str} {', '.join(inc_strs)}")
                 
             # Body instructions translation loop
@@ -77,7 +162,9 @@ class LlvmEmitter:
                 if isinstance(instr, IrParam):
                     var_base = instr.param_name.lstrip('%')
                     ty_str = "i1" if ("cond" in var_base or var_types.get(var_base) == "BOOLEAN") else "i64"
-                    self.lines.append(f"  {self.format_reg(instr.target_reg)} = add {ty_str} %{var_base}_arg, 0")
+                    self.lines.append(
+                        f"  {self.format_reg(instr.target_reg)} = add {ty_str} %{var_base}_arg, 0"
+                    )
                     
                 elif isinstance(instr, IrAlloca):
                     var_clean = instr.var_name.lstrip('%')
@@ -86,7 +173,10 @@ class LlvmEmitter:
                         
                 elif isinstance(instr, IrStore):
                     dest_clean = instr.dest_var.lstrip('%')
-                    src_formatted = self.format_reg(instr.src_reg)
+                    src_formatted = self.resolve_operand(
+                        instr.src_reg,
+                        discovered_env_params
+                    )
                     
                     if "." in instr.dest_var or "_" in instr.dest_var:
                         var_base = instr.dest_var.replace('.', '_').split('_')[0].lstrip('%')
@@ -107,7 +197,10 @@ class LlvmEmitter:
                     if "." in instr.src_var or "_" in instr.src_var:
                         var_base = instr.src_var.replace('.', '_').split('_')[0].lstrip('%')
                         ty_str = "i1" if ("cond" in var_base or var_types.get(var_base) == "BOOLEAN") else "i64"
-                        self.lines.append(f"  {target_formatted} = add {ty_str} {self.format_reg(instr.src_var)}, 0")
+                        self.lines.append(f"  {target_formatted} = add {ty_str} {self.resolve_operand(
+                            instr.src_var,
+                            discovered_env_params
+                        )}, 0")
                     else:
                         var_base = instr.src_var.lstrip('%')
                         if var_base in var_types or "cond" in var_base or "val" in var_base or var_base.startswith("r_") or "final" in var_base:
@@ -141,7 +234,10 @@ class LlvmEmitter:
             if isinstance(bb.terminator, IrBranch):
                 self.lines.append(f"  br label %{bb.terminator.target_label}")
             elif isinstance(bb.terminator, IrCondBranch):
-                cond_formatted = self.format_reg(bb.terminator.cond_reg)
+                cond_formatted = self.resolve_operand(
+                    bb.terminator.cond_reg,
+                    discovered_env_params
+                )
                 self.lines.append(f"  br i1 {cond_formatted}, label %{bb.terminator.then_label}, label %{bb.terminator.else_label}")
             elif isinstance(bb.terminator, IrReturn):
                 if bb.terminator.val_reg:
