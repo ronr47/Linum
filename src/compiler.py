@@ -17,6 +17,8 @@ from linum.src.lowering.cfg import CfgBuilder, CfgVerifier
 from linum.src.lowering.ssa import SsaConverter, SsaVerifier
 from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
 
+from linum.src.diagnostics import LinumDiagnostic, DiagnosticError
+
 
 class LinumCompiler:
     def __init__(self):
@@ -97,7 +99,24 @@ def compile_source(
     source: str,
     function_name: str = "main",
 ) -> str:
-    return LinumCompiler().compile_source(
-        source,
-        function_name,
-    )
+    try:
+        return LinumCompiler().compile_source(
+            source,
+            function_name,
+        )
+
+    except SyntaxError as e:
+        raise DiagnosticError(
+            LinumDiagnostic(
+                kind="syntax",
+                message=str(e),
+            )
+        )
+
+    except TypeError as e:
+        raise DiagnosticError(
+            LinumDiagnostic(
+                kind="semantic",
+                message=str(e),
+            )
+        )
