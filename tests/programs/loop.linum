@@ -1,0 +1,4 @@
+{
+    let q : COPY = %val_0;
+    return q;
+}
