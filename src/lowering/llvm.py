@@ -252,7 +252,8 @@ class LlvmEmitter:
 
 
 class SystemBackendLinker:
-    def verify_llvm_ir(self, llvm_ir: str) -> bool:
+    @staticmethod
+    def verify_llvm_ir(llvm_ir: str) -> bool:
         """Invokes the local llc system binary via a closed pipeline to validate assembly compliance."""
         try:
             proc = subprocess.run(
