@@ -1,32 +1,32 @@
-from typing import List, Optional
+# linum/src/frontend/parser.py
+from typing import List
 from linum.src.frontend.lexer import Token, TokenType
-from linum.src.diagnostics.span import SourceSpan
-from linum.src.semantic.types import Type, OwnershipMode, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN
-from linum.src.ast.nodes import ASTNode, IdentifierExpr, LetStmt, AssignStmt, MoveStmt, ExprStmt, ReturnStmt, BlockStmt, BorrowBlockStmt, IfStmt
+from linum.src.semantic.types import Type, OwnershipMode, PRIMITIVE_INTEGER
+from linum.src.ast.nodes import (
+    ASTNode, BlockStmt, LetStmt, IfStmt, IdentifierExpr, 
+    FunctionDecl, BorrowBlockStmt, ExprStmt, CallExpr, ReturnStmt, AssignStmt
+)
 
 class Parser:
     def __init__(self, tokens: List[Token]):
         self.tokens = tokens
         self.pos = 0
-        
+
     def peek(self) -> Token:
-        return self.tokens[self.pos]
-        
-    def token_span(self, tok: Token) -> SourceSpan:
-        return SourceSpan(
-            line=tok.line,
-            column=tok.column,
-            length=len(tok.value),
-        )
+        if self.pos < len(self.tokens):
+            return self.tokens[self.pos]
+        return Token(TokenType.EOF, "")
 
-
-    def consume(self, expected: TokenType) -> Token:
+    def consume(self, expected_type: TokenType) -> Token:
         tok = self.peek()
-        if tok.type != expected:
-            raise SyntaxError(f"Parser Error: Expected token {expected}, got {tok.type} ('{tok.value}') on line {tok.line}")
+        if tok.type != expected_type:
+            raise SyntaxError(f"Parser Error: Expected {expected_type}, got {tok.type}")
         self.pos += 1
         return tok
-        
+
+    def token_span(self, tok: Token):
+        return getattr(tok, 'span', None)
+
     def parse_type(self) -> Type:
         tok = self.peek()
         if tok.type == TokenType.TYPE_COPY:
@@ -38,58 +38,48 @@ class Parser:
         elif tok.type == TokenType.TYPE_AFFINE:
             self.consume(TokenType.TYPE_AFFINE)
             return Type("AFFINE_RES", OwnershipMode.AFFINE)
+        elif tok.type == TokenType.IDENTIFIER and tok.value == "ptr":
+            self.consume(TokenType.IDENTIFIER)
+            return PRIMITIVE_INTEGER
         raise SyntaxError(f"Parser Error: Invalid type specification parsing token {tok.type}")
 
     def parse_statement(self) -> ASTNode:
         tok = self.peek()
         if tok.type == TokenType.LET:
             self.consume(TokenType.LET)
-            name = self.consume(TokenType.IDENTIFIER).value
+            name_tok = self.consume(TokenType.IDENTIFIER)
             self.consume(TokenType.COLON)
             ty = self.parse_type()
             self.consume(TokenType.ASSIGN)
             expr = self.parse_expression()
             self.consume(TokenType.SEMI)
-            return LetStmt(name, ty, expr)
-            
-        elif tok.type == TokenType.IDENTIFIER:
-            name = self.consume(TokenType.IDENTIFIER).value
-            if self.peek().type == TokenType.ASSIGN:
-                self.consume(TokenType.ASSIGN)
-                expr = self.parse_expression()
-                self.consume(TokenType.SEMI)
-                return AssignStmt(name, expr)
-            elif self.peek().type == TokenType.MOVE:
-                self.consume(TokenType.MOVE)
-                dest = self.consume(TokenType.IDENTIFIER).value
-                self.consume(TokenType.SEMI)
-                return MoveStmt(name, dest)
-                
-        elif tok.type == TokenType.RETURN:
-            self.consume(TokenType.RETURN)
-            expr = None
-            if self.peek().type != TokenType.SEMI:
-                expr = self.parse_expression()
-            self.consume(TokenType.SEMI)
-            return ReturnStmt(expr)
-            
-        elif tok.type == TokenType.BORROW:
-            self.consume(TokenType.BORROW)
-            src = self.consume(TokenType.IDENTIFIER).value
-            self.consume(TokenType.AS)
-            alias = self.consume(TokenType.IDENTIFIER).value
-            body = self.parse_block()
-            return BorrowBlockStmt(src, alias, body)
-            
+            return LetStmt(name_tok.value, ty, expr)
         elif tok.type == TokenType.IF:
             self.consume(TokenType.IF)
             cond = self.parse_expression()
             then_b = self.parse_block()
-            self.consume(TokenType.ELSE)
-            else_b = self.parse_block()
+            if self.peek().type == TokenType.ELSE:
+                self.consume(TokenType.ELSE)
+                else_b = self.parse_block()
+            else:
+                else_b = BlockStmt([])
             return IfStmt(cond, then_b, else_b)
-            
-        raise SyntaxError(f"Parser Error: Unexpected statement head token token {tok.type}")
+        elif tok.type == TokenType.RETURN:
+            self.consume(TokenType.RETURN)
+            expr = self.parse_expression()
+            self.consume(TokenType.SEMI)
+            return ReturnStmt(expr)
+        elif tok.type == TokenType.IDENTIFIER:
+            target_tok = self.consume(TokenType.IDENTIFIER)
+            self.consume(TokenType.ASSIGN)
+            expr = self.parse_expression()
+            self.consume(TokenType.SEMI)
+            # Statically instantiate AssignStmt to preserve the semantic validation layer rules
+            return AssignStmt(target_tok.value, expr)
+        else:
+            expr = self.parse_expression()
+            self.consume(TokenType.SEMI)
+            return ExprStmt(expr)
 
     def parse_block(self) -> BlockStmt:
         self.consume(TokenType.LBRACE)
@@ -103,14 +93,8 @@ class Parser:
         tok = self.peek()
         if tok.type == TokenType.IDENTIFIER:
             self.consume(TokenType.IDENTIFIER)
-            return IdentifierExpr(
-                tok.value,
-                self.token_span(tok),
-            )
+            return IdentifierExpr(tok.value, self.token_span(tok))
         elif tok.type == TokenType.REG:
             self.consume(TokenType.REG)
-            return IdentifierExpr(
-                tok.value,
-                self.token_span(tok),
-            )
-        raise SyntaxError(f"Parser Error: Invalid primary expression token token {tok.type}")
+            return IdentifierExpr(tok.value, self.token_span(tok))
+        raise SyntaxError(f"Parser Error: Invalid primary expression token {tok.type}")
