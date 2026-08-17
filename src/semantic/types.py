@@ -69,3 +69,8 @@ class FunctionContract:
     parameters: Tuple[ParameterContract, ...]
     return_type: Optional[Type]
     return_mode: Optional[OwnershipMode]
+class RawPointerType(Type):
+    def __init__(self, base_type: Type, is_mutable: bool):
+        super().__init__(f'*' + ('mut ' if is_mutable else 'const ') + base_type.name, OwnershipMode.COPY)
+        self.base_type = base_type
+        self.is_mutable = is_mutable

@@ -106,7 +106,12 @@ class LlvmEmitter:
 
         for bb in ssa_func.blocks.values():
             for instr in bb.instructions:
-                if instr.__class__.__name__ == "IrPtrLoad":
+                if instr.__class__.__name__ == "IrPtrOffset":
+                    b_reg = self.resolve_operand(instr.base_ptr) if 'resolve_operand' in locals() else self.format_reg(instr.base_ptr)
+                    o_reg = self.resolve_operand(instr.offset_reg) if 'resolve_operand' in locals() else self.format_reg(instr.offset_reg)
+                    self.lines.append(f"  {self.format_reg(instr.target_reg)} = getelementptr i8, ptr {b_reg}, i64 {o_reg}")
+                    continue
+                elif instr.__class__.__name__ == "IrPtrLoad":
                     ptr_clean = instr.pointer_var.lstrip('%')
                     self.lines.append(f"  {self.format_reg(instr.target_reg)} = load ptr, ptr %{ptr_clean}, align 8")
                     continue
@@ -168,7 +173,12 @@ class LlvmEmitter:
                 
             # Body instructions translation loop
             for instr in bb.instructions:
-                if instr.__class__.__name__ == "IrPtrLoad":
+                if instr.__class__.__name__ == "IrPtrOffset":
+                    b_reg = self.resolve_operand(instr.base_ptr) if 'resolve_operand' in locals() else self.format_reg(instr.base_ptr)
+                    o_reg = self.resolve_operand(instr.offset_reg) if 'resolve_operand' in locals() else self.format_reg(instr.offset_reg)
+                    self.lines.append(f"  {self.format_reg(instr.target_reg)} = getelementptr i8, ptr {b_reg}, i64 {o_reg}")
+                    continue
+                elif instr.__class__.__name__ == "IrPtrLoad":
                     ptr_clean = instr.pointer_var.lstrip('%')
                     self.lines.append(f"  {self.format_reg(instr.target_reg)} = load ptr, ptr %{ptr_clean}, align 8")
                     continue

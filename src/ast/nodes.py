@@ -1310,3 +1310,23 @@ def check_statement_with_contract(
         "Unidentified AST structure node tracking vector: "
         f"{type(stmt).__name__}"
     )
+class PtrAllocaExpr(ASTNode):
+    def __init__(self, target_type, span=None):
+        super().__init__(span)
+        self.target_type = target_type
+
+class PtrLoadExpr(ASTNode):
+    def __init__(self, pointer_expr, span=None):
+        super().__init__(span)
+        self.pointer_expr = pointer_expr
+
+class PtrStoreStmt(ASTNode):
+    def __init__(self, pointer_expr, value_expr, span=None):
+        super().__init__(span)
+        self.pointer_expr = pointer_expr
+        self.value_expr = value_expr
+class PtrOffsetExpr(ASTNode):
+    def __init__(self, base_ptr_expr: ASTNode, offset_expr: ASTNode, span=None):
+        super().__init__(span)
+        self.base_ptr_expr = base_ptr_expr
+        self.offset_expr = offset_expr

@@ -53,7 +53,7 @@ def test_unmanaged_ptr_integration_pipeline():
     source_program = """
     {
         let ptr_var : ptr = %uninit_stub;
-        q = %val_42;
+        let q : COPY = %val_42;
         return q;
     }
     """

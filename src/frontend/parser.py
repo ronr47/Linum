@@ -93,7 +93,16 @@ class Parser:
         tok = self.peek()
         if tok.type == TokenType.IDENTIFIER:
             self.consume(TokenType.IDENTIFIER)
-            return IdentifierExpr(tok.value, self.token_span(tok))
+            left = IdentifierExpr(tok.value, self.token_span(tok))
+            
+            # Check for immediate offset operators treated as identifiers or custom tokens
+            next_tok = self.peek()
+            if next_tok.type == TokenType.IDENTIFIER and next_tok.value in ("+", "-"):
+                self.consume(TokenType.IDENTIFIER)
+                offset = self.parse_expression()
+                from linum.src.ast.nodes import PtrOffsetExpr
+                return PtrOffsetExpr(left, offset)
+            return left
         elif tok.type == TokenType.REG:
             self.consume(TokenType.REG)
             return IdentifierExpr(tok.value, self.token_span(tok))

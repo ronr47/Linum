@@ -4,6 +4,9 @@ from typing import List, NamedTuple
 
 
 class TokenType(Enum):
+    STAR = auto()
+    MUT = auto()
+    CONST = auto()
     LET = auto()
     IF = auto()
     ELSE = auto()
