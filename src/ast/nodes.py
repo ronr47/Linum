@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple, Optional
 
 from linum.src.diagnostics.span import SourceSpan, UNKNOWN_SPAN
+from linum.src.diagnostics.semantic import SemanticError
 
 from linum.src.semantic.types import (
     Type,
@@ -85,10 +86,11 @@ class IdentifierExpr(ASTNode):
             OwnerState.DEAD,
             OwnerState.UNINITIALIZED,
         ):
-            raise TypeError(
+            raise SemanticError(
                 f"Use-After-Move / Uninitialized Violation: "
                 f"Variable '{self.name}' has been invalidated "
-                f"({state.name})."
+                f"({state.name}).",
+                self.span,
             )
 
         if flow.active_borrows.get(self.name):

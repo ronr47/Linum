@@ -5,7 +5,7 @@ from linum.src.diagnostics.span import SourceSpan
 
 
 @dataclass
-class SemanticError(Exception):
+class SemanticError(TypeError):
     message: str
     span: Optional[SourceSpan] = None
 
