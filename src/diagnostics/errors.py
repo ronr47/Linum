@@ -11,18 +11,42 @@ class LinumDiagnostic:
     source: Optional[str] = None
 
     def render(self) -> str:
-        location = ""
-
+        # Resolve global source context code line representation if available
+        # fallback layout if file content cache is unpopulated
+        location_str = ""
+        visual_context = ""
+        
         if self.source is not None and self.line is not None:
-            location = f"{self.source}:{self.line}"
+            location_str = f"{self.source}:{self.line}"
             if self.column is not None:
-                location += f":{self.column}"
-
-            location += "\n"
+                location_str += f":{self.column}"
+            
+            indent = " " * len(str(self.line))
+            border = " | "
+            
+            # Simple fallback line retrieval
+            line_text = ""
+            if Path(self.source).exists():
+                lines = Path(self.source).read_text().splitlines()
+                if 0 <= self.line - 1 < len(lines):
+                    line_text = lines[self.line - 1]
+            
+            if line_text:
+                caret_pos = max(0, self.column - 1) if self.column else 0
+                caret_line = " " * caret_pos + "^"
+                visual_context = (
+                    f"\n{indent}--> {location_str}"
+                    f"\n{indent}|"
+                    f"\n{self.line}{border}{line_text}"
+                    f"\n{indent}{border}{caret_line}"
+                    f"\n{indent}|"
+                )
+            else:
+                visual_context = f"\n{indent}--> {location_str}"
 
         return (
-            f"{location}"
             f"error[{self.kind}]: {self.message}"
+            f"{visual_context}"
         )
 
 
