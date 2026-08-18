@@ -4,6 +4,8 @@ from typing import List, Optional
 from linum.src.diagnostics import SourceSpan
 
 class TokenType(Enum):
+    STRUCT = auto()
+    DOT = auto()
     LET = auto()
     IF = auto()
     ELSE = auto()
@@ -39,6 +41,7 @@ class Token:
 
 class Lexer:
     RULES = [
+        (TokenType.STRUCT, r'\bstruct\b'),
         (TokenType.LET, r'\blet\b'),
         (TokenType.IF, r'\bif\b'),
         (TokenType.ELSE, r'\belse\b'),
@@ -53,6 +56,7 @@ class Lexer:
         (TokenType.PLUS, r'\+'),
         (TokenType.MINUS, r'-'),
         
+        (TokenType.DOT, r'\.'),
         (TokenType.ASSIGN, r'='),
         (TokenType.LBRACE, r'\{'),
         (TokenType.RBRACE, r'\}'),

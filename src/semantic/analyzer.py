@@ -133,3 +133,13 @@ class SemFieldAccessExpr(SemanticNode):
     target: SemanticNode
     field_name: str
     type: Type
+
+
+@dataclass(frozen=True)
+class SemSimdVectorOp(SemanticNode):
+    op: str
+    dest_ptr: SemanticNode
+    src1_ptr: SemanticNode
+    src2_ptr: SemanticNode
+    width: int = 4
+    elem_type: str = "i32"

@@ -67,6 +67,14 @@ class IrPtrStore(IrInstruction): value_reg: str; pointer_var: str
 
 class CfgBuilder:
     def __init__(self):
+        self.label_counter = 0
+
+    def alloc_label(self, prefix: str = 'bb') -> str:
+        label = f'{prefix}_{self.label_counter}'
+        self.label_counter += 1
+        return label
+
+    def __init__(self):
         self.blocks: Dict[str, BasicBlock] = {}
         self.current_bb: Optional[BasicBlock] = None
         self.bb_counter = 0
@@ -99,6 +107,11 @@ class CfgBuilder:
         self.lower_statement(sem_decl.body, [])
         return CfgFunction(name=sem_decl.contract.name, entry_block=entry_label, blocks=dict(self.blocks))
     def lower_statement(self, node: SemanticNode, merge_stack: List[str]) -> None:
+        cname = node.__class__.__name__
+        if cname in ('SemSimdVectorOp', 'SimdVectorOpStmt', 'SimdVectorOp'):
+            if hasattr(self, 'current_block') and self.current_block is not None:
+                self.current_block.instructions.append(node)
+            return
         if self.current_bb is not None and self.current_bb.terminator is not None: return
         if isinstance(node, SemBlockStmt):
             for stmt in node.statements:

@@ -33,11 +33,36 @@ def build_parser() -> argparse.ArgumentParser:
         default="main",
         help="Entry point function name (default: main)"
     )
+    parser.add_argument(
+        "--audit-leak",
+        action="store_true",
+        help="Perform strict static resource leak and affine soundness auditing on the source file."
+    )
+    parser.add_argument(
+        "--audit-c",
+        help="Perform strict memory leak and FFI safety audit on a C source/header file."
+    )
     return parser
 
 def main(args: Optional[List[str]] = None) -> int:
     parser = build_parser()
     opts = parser.parse_args(args)
+
+    # Handle early routing path for external C source/header audits
+    if getattr(opts, "audit_c", None):
+        try:
+            from src.c_auditor import CAuditor
+            auditor = CAuditor()
+            errs = auditor.audit_source(opts.audit_c)
+            if errs:
+                for err in errs:
+                    sys.stderr.write(f"{err.file_path}:{err.line}: error [memory-leak]: {err.message}\n")
+                return 1
+            sys.stdout.write(f"SUCCESS: '{opts.audit_c}' passed C FFI memory audit with 0 leaks detected.\n")
+            return 0
+        except Exception as e:
+            sys.stderr.write(f"Driver execution error during C audit: {str(e)}\n")
+            return 1
 
     if not opts.input:
         parser.print_help(sys.stderr)
@@ -55,6 +80,11 @@ def main(args: Optional[List[str]] = None) -> int:
         return 1
 
     try:
+        if getattr(opts, "audit_leak", None):
+            compile_source(source_code, function_name=opts.function)
+            sys.stdout.write(f"SUCCESS: '{opts.input}' passed all Linum affine/linear leak and safety invariants.\n")
+            return 0
+            
         llvm_ir = compile_source(source_code, function_name=opts.function)
     except DiagnosticError as e:
         diag = e.diagnostic

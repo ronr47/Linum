@@ -1256,6 +1256,8 @@ def check_statement_with_contract(
 ) -> Tuple[FlowState, SemanticNode]:
     if type(stmt).__name__ == "SimdVectorOpStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "BorrowStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
+    if type(stmt).__name__ == "SimdVectorOpStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
+    if type(stmt).__name__ == "BorrowStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "BorrowStmt":
         return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if isinstance(stmt, LetStmt):
@@ -1397,3 +1399,27 @@ class FieldAccessExpr(ASTNode):
 
     def check(self, ctx):
         return self.check_type(ctx)
+
+
+class SimdVectorOpStmt(ASTNode):
+    def __init__(self, op: str, dest_ptr: ASTNode, src1_ptr: ASTNode, src2_ptr: ASTNode, width: int = 4, elem_type: str = "i32", span=None):
+        super().__init__(span)
+        self.op = op
+        self.dest_ptr = dest_ptr
+        self.src1_ptr = src1_ptr
+        self.src2_ptr = src2_ptr
+        self.width = width
+        self.elem_type = elem_type
+
+    def check_type(self, ctx):
+        return None
+
+    def check_ownership(self, flow, ctx, next_borrow_id):
+        from linum.src.semantic.analyzer import SemSimdVectorOp
+        flow, s_dest = self.dest_ptr.check_ownership(flow, ctx, next_borrow_id)
+        flow, s_src1 = self.src1_ptr.check_ownership(flow, ctx, next_borrow_id)
+        flow, s_src2 = self.src2_ptr.check_ownership(flow, ctx, next_borrow_id)
+        return flow, SemSimdVectorOp(op=self.op, dest_ptr=s_dest, src1_ptr=s_src1, src2_ptr=s_src2, width=self.width, elem_type=self.elem_type)
+
+    def check(self, ctx):
+        return None
