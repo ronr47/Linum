@@ -113,3 +113,10 @@ class TypedIrFunction:
     blocks: Dict[str, TypedBasicBlock]
     return_type: Type
     parameters: List[TypedReg]
+
+@dataclass
+class TypedIrFieldOffset(TypedIrInstruction):
+    target_reg: TypedReg
+    base_ptr: TypedReg
+    field_offset: int
+    field_type: Type

@@ -51,7 +51,7 @@ class LlvmEmitter:
             tname = str(ty)
 
         t_clean = tname.strip().lower()
-        if t_clean in ("ptr", "raw_ptr", "pointer"):
+        if t_clean in ("ptr", "raw_ptr", "pointer") or "struct" in t_clean or "orderheader" in t_clean:
             return "ptr"
         elif t_clean in ("boolean", "bool", "i1"):
             return "i1"
@@ -95,7 +95,17 @@ class LlvmEmitter:
                 for instr in bb.instructions:
                     cname = instr.__class__.__name__
 
-                    if cname in ("IrPtrOffset", "PtrOffset", "TypedIrPtrOffset"):
+                    if cname in ("IrFieldOffset", "FieldOffset", "TypedIrFieldOffset"):
+                        target = self._clean_name(getattr(instr, "target_reg", None))
+                        base = self._clean_name(getattr(instr, "base_ptr", None))
+                        if target and inferred_types.get(target) != "ptr":
+                            inferred_types[target] = "ptr"
+                            changed = True
+                        if base and inferred_types.get(base) != "ptr":
+                            inferred_types[base] = "ptr"
+                            changed = True
+
+                    elif cname in ("IrPtrOffset", "PtrOffset", "TypedIrPtrOffset"):
                         target = self._clean_name(getattr(instr, "target_reg", None))
                         base = self._clean_name(getattr(instr, "base_ptr", None))
                         offset = self._clean_name(getattr(instr, "offset_reg", None))
@@ -209,6 +219,7 @@ class LlvmEmitter:
                 ty = force_ty or inferred_types.get(clean) or inferred_types.get(clean_base) or "i64"
                 discovered_env_params[clean] = (f"%{clean}_arg", ty)
 
+        # Pass 1: Discover inputs
         for bb in blocks:
             for phi in getattr(bb, "phis", []):
                 for _, inc_val in phi.incomings:
@@ -222,6 +233,8 @@ class LlvmEmitter:
                 elif cname in ("IrBinOp", "BinOp", "TypedIrBinOp"):
                     collect_operand(getattr(instr, "left_reg", None))
                     collect_operand(getattr(instr, "right_reg", None))
+                elif cname in ("IrFieldOffset", "FieldOffset", "TypedIrFieldOffset"):
+                    collect_operand(getattr(instr, "base_ptr", None), force_ty="ptr")
                 elif cname in ("IrPtrOffset", "PtrOffset", "TypedIrPtrOffset"):
                     collect_operand(getattr(instr, "base_ptr", None), force_ty="ptr")
                     collect_operand(getattr(instr, "offset_reg", None), force_ty="i64")
@@ -279,6 +292,7 @@ class LlvmEmitter:
         params_formatted = ", ".join(param_strs)
         self.lines.append(f"define {ret_ty_str} @{self.contract.name}({params_formatted}) {{")
 
+        # Pass 2: Emit block bodies
         for bb in blocks:
             self.lines.append(f"{bb.label}:")
 
@@ -331,6 +345,12 @@ class LlvmEmitter:
                     raw_op = getattr(instr, "op", "+")
                     llvm_op = OPCODE_MAP.get(raw_op, "add")
                     self.lines.append(f"  {target_fmt} = {llvm_op} {ty_str} {left_fmt}, {right_fmt}")
+
+                elif cname in ("IrFieldOffset", "FieldOffset", "TypedIrFieldOffset"):
+                    target_fmt = self.format_reg(instr.target_reg)
+                    base_fmt = resolve_op(instr.base_ptr)
+                    offset_val = instr.field_offset
+                    self.lines.append(f"  {target_fmt} = getelementptr i8, ptr {base_fmt}, i64 {offset_val}")
 
                 elif cname in ("IrPtrOffset", "PtrOffset", "TypedIrPtrOffset"):
                     target_fmt = self.format_reg(instr.target_reg)

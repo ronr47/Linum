@@ -74,3 +74,39 @@ class RawPointerType(Type):
         super().__init__(f'*' + ('mut ' if is_mutable else 'const ') + base_type.name, OwnershipMode.COPY)
         self.base_type = base_type
         self.is_mutable = is_mutable
+
+
+class StructType(Type):
+    """
+    Represents a composite struct type with ordered fields and byte layouts.
+    If any field is LINEAR, the struct inherits LINEAR ownership mode.
+    """
+    def __init__(self, name: str, fields: Dict[str, Type], mode: Optional[OwnershipMode] = None):
+        field_offsets: Dict[str, int] = {}
+        curr_offset = 0
+        inferred_mode = OwnershipMode.COPY
+        
+        for fname, fty in fields.items():
+            field_offsets[fname] = curr_offset
+            curr_offset += 8
+            if getattr(fty, "mode", OwnershipMode.COPY) == OwnershipMode.LINEAR:
+                inferred_mode = OwnershipMode.LINEAR
+
+        resolved_mode = mode if mode is not None else inferred_mode
+        super().__init__(name=name, mode=resolved_mode)
+        
+        object.__setattr__(self, "field_types", fields)
+        object.__setattr__(self, "field_offsets", field_offsets)
+        object.__setattr__(self, "size_bytes", curr_offset)
+
+    def get_field_offset(self, field_name: str) -> int:
+        offsets = getattr(self, "field_offsets", {})
+        if field_name not in offsets:
+            raise KeyError(f"Struct '{self.name}' has no field '{field_name}'")
+        return offsets[field_name]
+
+    def get_field_type(self, field_name: str) -> Type:
+        ftypes = getattr(self, "field_types", {})
+        if field_name not in ftypes:
+            raise KeyError(f"Struct '{self.name}' has no field '{field_name}'")
+        return ftypes[field_name]

@@ -127,3 +127,9 @@ class SemBorrowBlockStmt(SemanticNode): source: str; borrow_alias: str; capabili
 class SemIfStmt(SemanticNode): condition: SemanticNode; then_block: SemBlockStmt; else_block: SemBlockStmt; then_drops: List[DropAction]; else_drops: List[DropAction]
 @dataclass(frozen=True)
 class SemFunctionDecl(SemanticNode): contract: FunctionContract; body: SemBlockStmt
+
+@dataclass(frozen=True)
+class SemFieldAccessExpr(SemanticNode):
+    target: SemanticNode
+    field_name: str
+    type: Type

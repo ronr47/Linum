@@ -1358,3 +1358,38 @@ class PtrOffsetExpr(ASTNode):
 
     def check(self, ctx):
         return self.check_type(ctx)
+
+
+class StructDecl(ASTNode):
+    def __init__(self, name: str, fields: Dict[str, Type], span=None):
+        self.name = name
+        self.fields = fields
+        self.span = span
+
+    def check(self, ctx):
+        from linum.src.semantic.types import StructType
+        st = StructType(self.name, self.fields)
+        ctx.bind(self.name, st, st.mode)
+        return st
+
+
+class FieldAccessExpr(ASTNode):
+    def __init__(self, target_expr: ASTNode, field_name: str, span=None):
+        self.target_expr = target_expr
+        self.field_name = field_name
+        self.span = span
+
+    def check_type(self, ctx):
+        target_ty = self.target_expr.check_type(ctx)
+        if hasattr(target_ty, "get_field_type"):
+            return target_ty.get_field_type(self.field_name)
+        raise TypeError(f"Target '{target_ty!r}' is not a struct type and does not contain field '{self.field_name}'")
+
+    def check_ownership(self, flow, ctx, next_borrow_id):
+        from linum.src.semantic.analyzer import SemFieldAccessExpr
+        flow, sem_target = self.target_expr.check_ownership(flow, ctx, next_borrow_id)
+        field_ty = self.check_type(ctx)
+        return flow, SemFieldAccessExpr(target=sem_target, field_name=self.field_name, type=field_ty)
+
+    def check(self, ctx):
+        return self.check_type(ctx)
