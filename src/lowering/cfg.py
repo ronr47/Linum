@@ -1,7 +1,7 @@
 # linum/src/lowering/cfg.py
 from dataclasses import dataclass, field
 from typing import Dict, List, Set, Tuple, Optional
-from linum.src.semantic.analyzer import SemanticNode, SemBlockStmt, SemLetStmt, SemAssignStmt, SemMoveStmt, SemExprStmt, SemReturnStmt, SemBorrowBlockStmt, SemIfStmt, SemIdentifierExpr, SemConsumeExpr, SemCallExpr, SemFunctionDecl
+from linum.src.semantic.analyzer import SemanticNode, SemBlockStmt, SemLetStmt, SemAssignStmt, SemMoveStmt, SemExprStmt, SemReturnStmt, SemBorrowBlockStmt, SemIfStmt, SemIdentifierExpr, SemConsumeExpr, SemCallExpr, SemFunctionDecl, SemPtrOffsetExpr
 
 class IrInstruction: pass
 @dataclass(frozen=True)
@@ -22,6 +22,9 @@ class IrBranch(IrInstruction): target_label: str
 class IrCondBranch(IrInstruction): cond_reg: str; then_label: str; else_label: str
 @dataclass(frozen=True)
 class IrReturn(IrInstruction): val_reg: Optional[str]
+
+@dataclass(frozen=True)
+class IrPtrOffset(IrInstruction): target_reg: str; base_ptr: str; offset_reg: str
 
 class BasicBlock:
     def __init__(self, label: str):
@@ -155,6 +158,17 @@ class CfgBuilder:
             # Direct raw pointer stack reservation
             self.emit_instr(IrAlloca(var_name=reg.lstrip('%'), type_name="ptr"))
             self.emit_instr(IrStore(src_reg="0", dest_var=reg.lstrip('%')))
+        elif isinstance(node, SemPtrOffsetExpr):
+            base_reg = self.lower_expression(node.base_ptr)
+            offset_reg = self.lower_expression(node.offset)
+            self.emit_instr(
+                IrPtrOffset(
+                    target_reg=reg,
+                    base_ptr=base_reg,
+                    offset_reg=offset_reg,
+                )
+            )
+            return reg
         elif isinstance(node, SemCallExpr):
             arg_regs = [self.lower_expression(arg.expr) for arg in node.arguments]
             target_reg = reg if node.result_type is not None else None

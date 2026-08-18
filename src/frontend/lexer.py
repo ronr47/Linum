@@ -1,147 +1,116 @@
 import re
 from enum import Enum, auto
-from typing import List, NamedTuple
-
+from typing import List, Optional
+from linum.src.diagnostics import SourceSpan
 
 class TokenType(Enum):
-    STAR = auto()
-    MUT = auto()
-    CONST = auto()
     LET = auto()
     IF = auto()
     ELSE = auto()
     RETURN = auto()
-    MOVE = auto()
-    CONSUME = auto()
     BORROW = auto()
     AS = auto()
-
-    TYPE_LINEAR = auto()
-    TYPE_AFFINE = auto()
-    TYPE_COPY = auto()
-
-    REG = auto()
+    MOVE = auto()
+    
     IDENTIFIER = auto()
-
+    REG = auto()
+    
     ASSIGN = auto()
     LBRACE = auto()
     RBRACE = auto()
-    LPAREN = auto()
-    RPAREN = auto()
-    SEMI = auto()
     COLON = auto()
+    SEMICOLON = auto()
     COMMA = auto()
-
+    
+    PLUS = auto()
+    MINUS = auto()
+    
+    STAR = auto()
     EOF = auto()
 
+class Token:
+    def __init__(self, type: TokenType, value: str, span: SourceSpan):
+        self.type = type
+        self.value = value
+        self.span = span
 
-class Token(NamedTuple):
-    type: TokenType
-    value: str
-    line: int
-    column: int
-    offset: int
-
+    def __repr__(self):
+        return f"Token({self.type}, {self.value!r}, {self.span})"
 
 class Lexer:
+    RULES = [
+        (TokenType.LET, r'\blet\b'),
+        (TokenType.IF, r'\bif\b'),
+        (TokenType.ELSE, r'\belse\b'),
+        (TokenType.RETURN, r'\breturn\b'),
+        (TokenType.BORROW, r'\bborrow\b'),
+        (TokenType.AS, r'\bas\b'),
+        (TokenType.MOVE, r'\bmove\b'),
+        
+        (TokenType.REG, r'%[a-zA-Z_0-9]+'),
+        (TokenType.IDENTIFIER, r'[a-zA-Z_][a-zA-Z_0-9]*'),
+        
+        (TokenType.PLUS, r'\+'),
+        (TokenType.MINUS, r'-'),
+        
+        (TokenType.ASSIGN, r'='),
+        (TokenType.LBRACE, r'\{'),
+        (TokenType.RBRACE, r'\}'),
+        (TokenType.COLON, r':'),
+        (TokenType.SEMICOLON, r';'),
+        (TokenType.COMMA, r','),
+        (TokenType.STAR, r'\*'),
+    ]
+
     def __init__(self, source: str):
         self.source = source
-        self.tokens: List[Token] = []
+        self.length = len(source)
+        self.pos = 0
         self.line = 1
-        self.column = 1
-
-    def advance_position(self, text: str):
-        for ch in text:
-            if ch == "\n":
-                self.line += 1
-                self.column = 1
-            else:
-                self.column += 1
+        self.col = 1
 
     def tokenize(self) -> List[Token]:
-        rules = [
-            (TokenType.LET, r'\blet\b'),
-            (TokenType.IF, r'\bif\b'),
-            (TokenType.ELSE, r'\belse\b'),
-            (TokenType.RETURN, r'\breturn\b'),
-            (TokenType.MOVE, r'\bmove\b'),
-            (TokenType.CONSUME, r'\bconsume\b'),
-            (TokenType.BORROW, r'\bborrow\b'),
-            (TokenType.AS, r'\bas\b'),
-
-            (TokenType.TYPE_LINEAR, r'\bLINEAR\b'),
-            (TokenType.TYPE_AFFINE, r'\bAFFINE\b'),
-            (TokenType.TYPE_COPY, r'\bCOPY\b'),
-
-            (TokenType.REG, r'%[a-zA-Z_0-9]+'),
-            (TokenType.IDENTIFIER, r'[a-zA-Z_][a-zA-Z_0-9]*'),
-
-            (TokenType.ASSIGN, r'='),
-            (TokenType.LBRACE, r'\{'),
-            (TokenType.RBRACE, r'\}'),
-            (TokenType.LPAREN, r'\('),
-            (TokenType.RPAREN, r'\)'),
-            (TokenType.SEMI, r';'),
-            (TokenType.COLON, r':'),
-            (TokenType.COMMA, r','),
-        ]
-
-        pos = 0
-
-        while pos < len(self.source):
-
-            if self.source[pos] == "\n":
-                self.advance_position("\n")
-                pos += 1
+        tokens: List[Token] = []
+        while self.pos < self.length:
+            # Skip whitespace
+            m = re.match(r'[ \t\r\n]+', self.source[self.pos:])
+            if m:
+                text = m.group(0)
+                newlines = text.count('\n')
+                if newlines > 0:
+                    self.line += newlines
+                    self.col = len(text.rsplit('\n', 1)[1]) + 1
+                else:
+                    self.col += len(text)
+                self.pos += len(text)
                 continue
 
-            if self.source[pos].isspace():
-                self.advance_position(self.source[pos])
-                pos += 1
+            # Skip comments
+            if self.source[self.pos:].startswith('//'):
+                newline_pos = self.source.find('\n', self.pos)
+                if newline_pos == -1:
+                    break
+                self.pos = newline_pos + 1
+                self.line += 1
+                self.col = 1
                 continue
 
             matched = False
-
-            for token_type, regex in rules:
-                match = re.match(
-                    regex,
-                    self.source[pos:],
-                )
-
-                if match:
-                    val = match.group(0)
-
-                    self.tokens.append(
-                        Token(
-                            token_type,
-                            val,
-                            self.line,
-                            self.column,
-                            pos,
-                        )
-                    )
-
-                    self.advance_position(val)
-                    pos += len(val)
-
+            for tok_type, pattern in self.RULES:
+                m = re.match(pattern, self.source[self.pos:])
+                if m:
+                    val = m.group(0)
+                    span = SourceSpan(self.line, self.col, len(val))
+                    tokens.append(Token(tok_type, val, span))
+                    self.pos += len(val)
+                    self.col += len(val)
                     matched = True
                     break
 
             if not matched:
                 raise SyntaxError(
-                    f"Lexer Error: Unknown sequence "
-                    f"'{self.source[pos]}' at line {self.line}, "
-                    f"column {self.column}"
+                    f"Lexer Error: Unexpected character '{self.source[self.pos]}' at line {self.line}, col {self.col}"
                 )
 
-        self.tokens.append(
-            Token(
-                TokenType.EOF,
-                "",
-                self.line,
-                self.column,
-                pos,
-            )
-        )
-
-        return self.tokens
+        tokens.append(Token(TokenType.EOF, "", SourceSpan(self.line, self.col, 0)))
+        return tokens

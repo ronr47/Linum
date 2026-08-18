@@ -99,6 +99,12 @@ class SemanticNode: pass
 class SemIdentifierExpr(SemanticNode): name: str; type: Type
 @dataclass(frozen=True)
 class SemConsumeExpr(SemanticNode): source: str; type: Type
+
+@dataclass(frozen=True)
+class SemPtrOffsetExpr(SemanticNode):
+    base_ptr: SemanticNode
+    offset: SemanticNode
+    type: Type
 @dataclass(frozen=True)
 class SemCallArg(SemanticNode): expr: SemanticNode; mode: OwnershipMode; borrowed: bool; source_name: Optional[str]
 @dataclass(frozen=True)

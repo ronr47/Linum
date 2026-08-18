@@ -1,3 +1,10 @@
+#!/usr/bin/env bash
+set -e
+
+PY_BIN="$( [ -f "./.venv/bin/python" ] && echo "./.venv/bin/python" || echo "$(which python3)" )"
+export PYTHONPATH=".:$PYTHONPATH"
+
+cat <<'EOF' > src/compiler.py
 from typing import Dict
 
 from linum.src.frontend.lexer import Lexer
@@ -148,3 +155,6 @@ def compile_source(
                 message=str(e),
             )
         )
+EOF
+
+echo "src/compiler.py successfully updated."

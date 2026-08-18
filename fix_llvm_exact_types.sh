@@ -1,28 +1,15 @@
+#!/usr/bin/env bash
+set -e
+
+PY_BIN="$( [ -f "./.venv/bin/python" ] && echo "./.venv/bin/python" || echo "$(which python3)" )"
+export PYTHONPATH=".:$PYTHONPATH"
+
+cat <<'EOF' > src/lowering/llvm.py
 import subprocess
 import os
 import re
 from typing import Dict, List, Set, Tuple, Optional, Any
 from linum.src.semantic.types import FunctionContract, OwnershipMode, Type, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN
-
-OPCODE_MAP: Dict[str, str] = {
-    "+": "add",
-    "-": "sub",
-    "*": "mul",
-    "/": "sdiv",
-    "%": "srem",
-    "&": "and",
-    "|": "or",
-    "^": "xor",
-    "<<": "shl",
-    ">>": "ashr",
-    ">>>": "lshr",
-    "==": "icmp eq",
-    "!=": "icmp ne",
-    "<": "icmp slt",
-    "<=": "icmp sle",
-    ">": "icmp sgt",
-    ">=": "icmp sge",
-}
 
 class LlvmEmitter:
     """
@@ -50,9 +37,6 @@ class LlvmEmitter:
             return "i64"
         if isinstance(ty, Type):
             tname = ty.name
-            if hasattr(ty, "params") and ty.params:
-                if tname == "ptr":
-                    return "ptr"
         else:
             tname = str(ty)
 
@@ -98,7 +82,7 @@ class LlvmEmitter:
                     target = self._clean_name(phi.result)
                     target_base = target.split('.')[0]
                     ty = inferred_types.get(target) or inferred_types.get(target_base)
-
+                    
                     if ty:
                         for _, inc_val in phi.incomings:
                             inc_clean = self._clean_name(inc_val)
@@ -113,7 +97,7 @@ class LlvmEmitter:
                         target = self._clean_name(getattr(instr, "target_reg", None))
                         base = self._clean_name(getattr(instr, "base_ptr", None))
                         offset = self._clean_name(getattr(instr, "offset_reg", None))
-
+                        
                         if target and inferred_types.get(target) != "ptr":
                             inferred_types[target] = "ptr"
                             changed = True
@@ -347,9 +331,9 @@ class LlvmEmitter:
                     left_fmt = resolve_op(instr.left_reg)
                     right_fmt = resolve_op(instr.right_reg)
                     ty_str = get_type(instr.target_reg)
-                    raw_op = getattr(instr, "op", "+")
-                    llvm_op = OPCODE_MAP.get(raw_op, "add")
-                    self.lines.append(f"  {target_fmt} = {llvm_op} {ty_str} {left_fmt}, {right_fmt}")
+
+                    op_inst = "sub" if getattr(instr, "op", "+") == "-" else "add"
+                    self.lines.append(f"  {target_fmt} = {op_inst} {ty_str} {left_fmt}, {right_fmt}")
 
                 elif cname in ("IrPtrOffset", "PtrOffset"):
                     target_fmt = self.format_reg(instr.target_reg)
@@ -488,3 +472,6 @@ class SystemBackendLinker:
         except subprocess.CalledProcessError as e:
             err_msg = e.stderr.decode('utf-8', errors='ignore') if e.stderr else "Unknown llc compilation error"
             raise RuntimeError(f"LLVM object file generation failed: {err_msg}")
+EOF
+
+echo "src/lowering/llvm.py updated with bidirectional type constraint solving."
