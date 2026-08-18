@@ -295,8 +295,10 @@ class LlvmEmitter:
         declarations = []
         if "malloc" in called_functions:
             declarations.append("declare noalias ptr @malloc(i64)")
-        declarations.append("declare i32 @posix_memalign(ptr, i64, i64)")
-        declarations.append("declare i32 @posix_memalign(ptr, i64, i64)")
+        if "declare i32 @posix_memalign(ptr, i64, i64)" not in declarations:
+            declarations.append("declare i32 @posix_memalign(ptr, i64, i64)")
+        
+        
         if "free" in called_functions:
             declarations.append("declare void @free(ptr)")
         if has_drops or "__drop_linear_resource" in called_functions:
