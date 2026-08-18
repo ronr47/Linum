@@ -1,30 +1,23 @@
+#!/usr/bin/env bash
+set -e
+
+PY_BIN="$( [ -f "./.venv/bin/python" ] && echo "./.venv/bin/python" || echo "$(which python3)" )"
+export PYTHONPATH=".:$PYTHONPATH"
+
+cat <<'EOF' > src/lowering/llvm.py
 import subprocess
 import os
 import re
 from typing import Dict, List, Set, Tuple, Optional, Any
 from linum.src.semantic.types import FunctionContract, OwnershipMode, Type, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN
 
-OPCODE_MAP: Dict[str, str] = {
-    "+": "add",
-    "-": "sub",
-    "*": "mul",
-    "/": "sdiv",
-    "%": "srem",
-    "&": "and",
-    "|": "or",
-    "^": "xor",
-    "<<": "shl",
-    ">>": "ashr",
-    ">>>": "lshr",
-    "==": "icmp eq",
-    "!=": "icmp ne",
-    "<": "icmp slt",
-    "<=": "icmp sle",
-    ">": "icmp sgt",
-    ">=": "icmp sge",
-}
-
 class LlvmEmitter:
+    """
+    Translates SSA/CFG intermediate representations into valid LLVM IR.
+    Uses unified bidirectional type inference across instructions to ensure
+    function signatures and instruction operand types match exactly.
+    """
+
     def __init__(self, contract: FunctionContract):
         self.contract = contract
         self.lines: List[str] = []
@@ -44,19 +37,18 @@ class LlvmEmitter:
             return "i64"
         if isinstance(ty, Type):
             tname = ty.name
-            if hasattr(ty, "params") and ty.params:
-                if tname == "ptr":
-                    return "ptr"
         else:
             tname = str(ty)
 
         t_clean = tname.strip().lower()
-        if t_clean in ("ptr", "raw_ptr", "pointer") or "struct" in t_clean or "orderheader" in t_clean:
+        if t_clean in ("ptr", "raw_ptr", "pointer"):
             return "ptr"
         elif t_clean in ("boolean", "bool", "i1"):
             return "i1"
         elif t_clean in ("void",):
             return "void"
+        elif t_clean in ("integer", "int", "i64", "copy"):
+            return "i64"
         return "i64"
 
     def _clean_name(self, name: Any) -> str:
@@ -66,37 +58,31 @@ class LlvmEmitter:
             return f"{name.name}.{name.version}".lstrip('%')
         return str(name).lstrip('%')
 
-    def emit(self, ssa_func: Any, var_types: Dict[str, Any]) -> str:
-
-        if self.contract.name == "simd_codegen_test":
-            return (f"define i64 @simd_codegen_test(ptr %init_a_arg, ptr %init_b_arg, ptr %init_res_arg) {{\n"
-                    f"entry_simd_codegen_test:\n"
-                    f"  ; --- BEGIN SIMD AUTO-VECTORIZATION ---\n"
-                    f"  %v1 = load <4 x i32>, ptr %init_a_arg, align 16\n"
-                    f"  %v2 = load <4 x i32>, ptr %init_b_arg, align 16\n"
-                    f"  %vres = add <4 x i32> %v1, %v2\n"
-                    f"  store <4 x i32> %vres, ptr %init_res_arg, align 16\n"
-                    f"  ret ptr %init_res_arg\n"
-                    f"}}\n")
-
+    def emit(self, cfg: Any, var_types: Dict[str, Any]) -> str:
         self.lines = []
         called_functions: Set[str] = set()
         ret_ty_str = self._type_to_llvm_str(self.contract.return_type)
-        blocks = list(ssa_func.blocks.values()) if isinstance(ssa_func.blocks, dict) else list(ssa_func.blocks)
+        blocks = list(cfg.blocks.values()) if isinstance(cfg.blocks, dict) else list(cfg.blocks)
 
+        # 1. Infer types for all variables and SSA registers
         inferred_types: Dict[str, str] = {}
+
+        # Seed from semantic var_types
         for v, t in var_types.items():
             clean_v = self._clean_name(v)
             inferred_types[clean_v] = self._type_to_llvm_str(t)
 
+        # Iterative constraint solving across instructions
         changed = True
         while changed:
             changed = False
+
             for bb in blocks:
                 for phi in getattr(bb, "phis", []):
                     target = self._clean_name(phi.result)
                     target_base = target.split('.')[0]
                     ty = inferred_types.get(target) or inferred_types.get(target_base)
+                    
                     if ty:
                         for _, inc_val in phi.incomings:
                             inc_clean = self._clean_name(inc_val)
@@ -105,25 +91,13 @@ class LlvmEmitter:
                                 changed = True
 
                 for instr in bb.instructions:
-                    if type(instr).__name__ == 'SimdVectorOpStmt':
-                        body_ir += self.emit_simd_op(instr)
-                        continue
                     cname = instr.__class__.__name__
 
-                    if cname in ("IrFieldOffset", "FieldOffset", "TypedIrFieldOffset"):
-                        target = self._clean_name(getattr(instr, "target_reg", None))
-                        base = self._clean_name(getattr(instr, "base_ptr", None))
-                        if target and inferred_types.get(target) != "ptr":
-                            inferred_types[target] = "ptr"
-                            changed = True
-                        if base and inferred_types.get(base) != "ptr":
-                            inferred_types[base] = "ptr"
-                            changed = True
-
-                    elif cname in ("IrPtrOffset", "PtrOffset", "TypedIrPtrOffset"):
+                    if cname in ("IrPtrOffset", "PtrOffset"):
                         target = self._clean_name(getattr(instr, "target_reg", None))
                         base = self._clean_name(getattr(instr, "base_ptr", None))
                         offset = self._clean_name(getattr(instr, "offset_reg", None))
+                        
                         if target and inferred_types.get(target) != "ptr":
                             inferred_types[target] = "ptr"
                             changed = True
@@ -134,25 +108,25 @@ class LlvmEmitter:
                             inferred_types[offset] = "i64"
                             changed = True
 
-                    elif cname in ("IrPtrLoad", "PtrLoad", "TypedIrPtrLoad"):
+                    elif cname in ("IrPtrLoad", "PtrLoad"):
                         p_var = self._clean_name(getattr(instr, "pointer_var", None))
                         if p_var and inferred_types.get(p_var) != "ptr":
                             inferred_types[p_var] = "ptr"
                             changed = True
 
-                    elif cname in ("IrPtrStore", "PtrStore", "TypedIrPtrStore"):
+                    elif cname in ("IrPtrStore", "PtrStore"):
                         p_var = self._clean_name(getattr(instr, "pointer_var", None))
                         if p_var and inferred_types.get(p_var) != "ptr":
                             inferred_types[p_var] = "ptr"
                             changed = True
 
-                    elif cname in ("IrDrop", "Drop", "TypedIrDrop"):
+                    elif cname in ("IrDrop", "Drop"):
                         p_var = self._clean_name(getattr(instr, "var_name", None))
                         if p_var and inferred_types.get(p_var) != "ptr":
                             inferred_types[p_var] = "ptr"
                             changed = True
 
-                    elif cname in ("IrCall", "Call", "TypedIrCall"):
+                    elif cname in ("IrCall", "Call"):
                         fn = getattr(instr, "function", "")
                         if fn:
                             called_functions.add(fn)
@@ -173,8 +147,8 @@ class LlvmEmitter:
                                     inferred_types[a_clean] = "i64"
                                     changed = True
 
-                    elif cname in ("IrAssign", "Assign", "IrStore", "Store", "TypedIrAssign", "TypedIrStore"):
-                        dest = self._clean_name(getattr(instr, "target_reg", getattr(instr, "dest_var", getattr(instr, "target_var", getattr(instr, "dest_reg", None)))))
+                    elif cname in ("IrAssign", "Assign", "IrStore", "Store"):
+                        dest = self._clean_name(getattr(instr, "target_reg", getattr(instr, "dest_var", getattr(instr, "target_var", None))))
                         src = self._clean_name(getattr(instr, "src_reg", None))
                         dest_base = dest.split('.')[0]
                         src_base = src.split('.')[0]
@@ -189,9 +163,9 @@ class LlvmEmitter:
                             inferred_types[dest] = src_ty
                             changed = True
 
-                    elif cname in ("IrLoad", "Load", "TypedIrLoad"):
+                    elif cname in ("IrLoad", "Load"):
                         dest = self._clean_name(getattr(instr, "target_reg", None))
-                        src = self._clean_name(getattr(instr, "src_var", getattr(instr, "src_reg", None)))
+                        src = self._clean_name(getattr(instr, "src_var", None))
                         dest_base = dest.split('.')[0]
                         src_base = src.split('.')[0]
 
@@ -208,74 +182,66 @@ class LlvmEmitter:
                 term = getattr(bb, "terminator", None)
                 if term:
                     tname = term.__class__.__name__
-                    if tname in ("IrCondBranch", "CondBranch", "TypedIrCondBranch"):
+                    if tname in ("IrCondBranch", "CondBranch"):
                         cond = self._clean_name(getattr(term, "cond_reg", None))
                         if cond and inferred_types.get(cond) != "i1":
                             inferred_types[cond] = "i1"
                             changed = True
 
+        # 2. Collect defined registers vs external environment inputs
         defined_vars: Set[str] = set()
         for bb in blocks:
             for phi in getattr(bb, "phis", []):
                 defined_vars.add(self._clean_name(phi.result))
             for instr in bb.instructions:
-                if type(instr).__name__ == 'SimdVectorOpStmt':
-                    body_ir += self.emit_simd_op(instr)
-                    continue
-                t = getattr(instr, "target_reg", None) or getattr(instr, "dest_var", None) or getattr(instr, "target_var", None) or getattr(instr, "dest_reg", None)
+                t = getattr(instr, "target_reg", None) or getattr(instr, "dest_var", None) or getattr(instr, "target_var", None)
                 if t:
                     defined_vars.add(self._clean_name(t))
 
         discovered_env_params: Dict[str, Tuple[str, str]] = {}
 
-        def collect_operand(op: Optional[Any], force_ty: Optional[str] = None):
+        def collect_operand(op: Optional[Any]):
             if not op:
                 return
             clean = self._clean_name(op)
             if clean and clean not in defined_vars and clean not in discovered_env_params:
                 clean_base = clean.split('.')[0]
-                ty = force_ty or inferred_types.get(clean) or inferred_types.get(clean_base) or "i64"
+                ty = inferred_types.get(clean) or inferred_types.get(clean_base) or "i64"
                 discovered_env_params[clean] = (f"%{clean}_arg", ty)
 
-        # Pass 1: Discover inputs
         for bb in blocks:
             for phi in getattr(bb, "phis", []):
                 for _, inc_val in phi.incomings:
                     collect_operand(inc_val)
             for instr in bb.instructions:
-                if type(instr).__name__ == 'SimdVectorOpStmt':
-                    body_ir += self.emit_simd_op(instr)
-                    continue
                 cname = instr.__class__.__name__
-                if cname in ("IrAssign", "Assign", "IrStore", "Store", "TypedIrAssign", "TypedIrStore"):
+                if cname in ("IrAssign", "Assign", "IrStore", "Store"):
                     collect_operand(getattr(instr, "src_reg", None))
-                elif cname in ("IrLoad", "Load", "TypedIrLoad"):
-                    collect_operand(getattr(instr, "src_var", getattr(instr, "src_reg", None)))
-                elif cname in ("IrBinOp", "BinOp", "TypedIrBinOp"):
+                elif cname in ("IrLoad", "Load"):
+                    collect_operand(getattr(instr, "src_var", None))
+                elif cname in ("IrBinOp", "BinOp"):
                     collect_operand(getattr(instr, "left_reg", None))
                     collect_operand(getattr(instr, "right_reg", None))
-                elif cname in ("IrFieldOffset", "FieldOffset", "TypedIrFieldOffset"):
-                    collect_operand(getattr(instr, "base_ptr", None), force_ty="ptr")
-                elif cname in ("IrPtrOffset", "PtrOffset", "TypedIrPtrOffset"):
-                    collect_operand(getattr(instr, "base_ptr", None), force_ty="ptr")
-                    collect_operand(getattr(instr, "offset_reg", None), force_ty="i64")
-                elif cname in ("IrPtrLoad", "PtrLoad", "TypedIrPtrLoad"):
-                    collect_operand(getattr(instr, "pointer_var", None), force_ty="ptr")
-                elif cname in ("IrPtrStore", "PtrStore", "TypedIrPtrStore"):
+                elif cname in ("IrPtrOffset", "PtrOffset"):
+                    collect_operand(getattr(instr, "base_ptr", None))
+                    collect_operand(getattr(instr, "offset_reg", None))
+                elif cname in ("IrPtrLoad", "PtrLoad"):
+                    collect_operand(getattr(instr, "pointer_var", None))
+                elif cname in ("IrPtrStore", "PtrStore"):
                     collect_operand(getattr(instr, "value_reg", None))
-                    collect_operand(getattr(instr, "pointer_var", None), force_ty="ptr")
-                elif cname in ("IrDrop", "Drop", "TypedIrDrop"):
-                    collect_operand(getattr(instr, "var_name", None), force_ty="ptr")
-                elif cname in ("IrCall", "Call", "TypedIrCall"):
+                    collect_operand(getattr(instr, "pointer_var", None))
+                elif cname in ("IrDrop", "Drop"):
+                    collect_operand(getattr(instr, "var_name", None))
+                elif cname in ("IrCall", "Call"):
                     for arg in getattr(instr, "args_regs", ()):
                         collect_operand(arg)
 
             term = getattr(bb, "terminator", None)
             if term:
                 tname = term.__class__.__name__
-                if tname in ("IrCondBranch", "CondBranch", "TypedIrCondBranch"):
-                    collect_operand(getattr(term, "cond_reg", None), force_ty="i1")
-                elif tname in ("IrReturn", "Return", "TypedIrReturn"):
+                if tname in ("IrCondBranch", "CondBranch"):
+                    collect_operand(getattr(term, "cond_reg", None))
+                elif tname in ("IrReturn", "Return"):
                     collect_operand(getattr(term, "val_reg", None))
 
         def resolve_op(op: Any) -> str:
@@ -291,7 +257,8 @@ class LlvmEmitter:
             clean_base = clean.split('.')[0]
             return inferred_types.get(clean) or inferred_types.get(clean_base) or "i64"
 
-        has_drops = any(instr.__class__.__name__ in ("IrDrop", "Drop", "TypedIrDrop") for bb in blocks for instr in bb.instructions)
+        # 3. Emit external function declarations
+        has_drops = any(instr.__class__.__name__ in ("IrDrop", "Drop") for bb in blocks for instr in bb.instructions)
         declarations = []
         if "malloc" in called_functions:
             declarations.append("declare noalias ptr @malloc(i64)")
@@ -305,6 +272,7 @@ class LlvmEmitter:
         if declarations:
             self.lines.append("")
 
+        # 4. Emit function signature
         param_strs = []
         for orig_name in sorted(discovered_env_params.keys()):
             arg_name, arg_ty = discovered_env_params[orig_name]
@@ -313,7 +281,7 @@ class LlvmEmitter:
         params_formatted = ", ".join(param_strs)
         self.lines.append(f"define {ret_ty_str} @{self.contract.name}({params_formatted}) {{")
 
-        # Pass 2: Emit block bodies
+        # 5. Emit block instructions
         for bb in blocks:
             self.lines.append(f"{bb.label}:")
 
@@ -331,12 +299,9 @@ class LlvmEmitter:
                 self.lines.append(f"  {target_fmt} = phi {ty_str} {phi_str}")
 
             for instr in bb.instructions:
-                if type(instr).__name__ == 'SimdVectorOpStmt':
-                    body_ir += self.emit_simd_op(instr)
-                    continue
                 cname = instr.__class__.__name__
 
-                if cname in ("IrAssign", "Assign", "TypedIrAssign"):
+                if cname in ("IrAssign", "Assign"):
                     target_fmt = self.format_reg(instr.target_reg)
                     src_formatted = resolve_op(instr.src_reg)
                     ty_str = get_type(instr.target_reg)
@@ -348,8 +313,8 @@ class LlvmEmitter:
                     else:
                         self.lines.append(f"  {target_fmt} = add {ty_str} {src_formatted}, 0")
 
-                elif cname in ("IrStore", "Store", "TypedIrStore"):
-                    dest = getattr(instr, "dest_var", getattr(instr, "target_var", getattr(instr, "dest_reg", None)))
+                elif cname in ("IrStore", "Store"):
+                    dest = getattr(instr, "dest_var", getattr(instr, "target_var", None))
                     dest_fmt = self.format_reg(dest)
                     src_formatted = resolve_op(instr.src_reg)
                     ty_str = get_type(dest)
@@ -361,42 +326,36 @@ class LlvmEmitter:
                     else:
                         self.lines.append(f"  {dest_fmt} = add {ty_str} {src_formatted}, 0")
 
-                elif cname in ("IrBinOp", "BinOp", "TypedIrBinOp"):
+                elif cname in ("IrBinOp", "BinOp"):
                     target_fmt = self.format_reg(instr.target_reg)
                     left_fmt = resolve_op(instr.left_reg)
                     right_fmt = resolve_op(instr.right_reg)
                     ty_str = get_type(instr.target_reg)
-                    raw_op = getattr(instr, "op", "+")
-                    llvm_op = OPCODE_MAP.get(raw_op, "add")
-                    self.lines.append(f"  {target_fmt} = {llvm_op} {ty_str} {left_fmt}, {right_fmt}")
 
-                elif cname in ("IrFieldOffset", "FieldOffset", "TypedIrFieldOffset"):
-                    target_fmt = self.format_reg(instr.target_reg)
-                    base_fmt = resolve_op(instr.base_ptr)
-                    offset_val = instr.field_offset
-                    self.lines.append(f"  {target_fmt} = getelementptr i8, ptr {base_fmt}, i64 {offset_val}")
+                    op_inst = "sub" if getattr(instr, "op", "+") == "-" else "add"
+                    self.lines.append(f"  {target_fmt} = {op_inst} {ty_str} {left_fmt}, {right_fmt}")
 
-                elif cname in ("IrPtrOffset", "PtrOffset", "TypedIrPtrOffset"):
+                elif cname in ("IrPtrOffset", "PtrOffset"):
                     target_fmt = self.format_reg(instr.target_reg)
                     base_fmt = resolve_op(instr.base_ptr)
                     offset_fmt = resolve_op(instr.offset_reg)
                     self.lines.append(f"  {target_fmt} = getelementptr i8, ptr {base_fmt}, i64 {offset_fmt}")
 
-                elif cname in ("IrPtrLoad", "PtrLoad", "TypedIrPtrLoad"):
+                elif cname in ("IrPtrLoad", "PtrLoad"):
                     target_fmt = self.format_reg(instr.target_reg)
                     ptr_fmt = resolve_op(instr.pointer_var)
                     val_ty = get_type(instr.target_reg)
                     self.lines.append(f"  {target_fmt} = load {val_ty}, ptr {ptr_fmt}, align 8")
 
-                elif cname in ("IrPtrStore", "PtrStore", "TypedIrPtrStore"):
+                elif cname in ("IrPtrStore", "PtrStore"):
                     val_fmt = resolve_op(instr.value_reg)
                     ptr_fmt = resolve_op(instr.pointer_var)
                     val_ty = get_type(instr.value_reg)
                     self.lines.append(f"  store {val_ty} {val_fmt}, ptr {ptr_fmt}, align 8")
 
-                elif cname in ("IrLoad", "Load", "TypedIrLoad"):
+                elif cname in ("IrLoad", "Load"):
                     target_fmt = self.format_reg(instr.target_reg)
-                    src_formatted = resolve_op(getattr(instr, "src_var", getattr(instr, "src_reg", None)))
+                    src_formatted = resolve_op(instr.src_var)
                     ty_str = get_type(instr.target_reg)
 
                     if ty_str == "ptr":
@@ -406,7 +365,7 @@ class LlvmEmitter:
                     else:
                         self.lines.append(f"  {target_fmt} = add {ty_str} {src_formatted}, 0")
 
-                elif cname in ("IrCall", "Call", "TypedIrCall"):
+                elif cname in ("IrCall", "Call"):
                     fn_name = instr.function
                     args_list = getattr(instr, "args_regs", ())
                     arg_strs = []
@@ -434,16 +393,16 @@ class LlvmEmitter:
                     else:
                         self.lines.append(f"  call {call_ret_ty} @{fn_name}({args_formatted})")
 
-                elif cname in ("IrDrop", "Drop", "TypedIrDrop"):
+                elif cname in ("IrDrop", "Drop"):
                     var_fmt = resolve_op(instr.var_name)
                     self.lines.append(f"  call void @__drop_linear_resource(ptr {var_fmt})")
 
             term = getattr(bb, "terminator", None)
             if term:
                 tname = term.__class__.__name__
-                if tname in ("IrBranch", "Branch", "TypedIrBranch"):
+                if tname in ("IrBranch", "Branch"):
                     self.lines.append(f"  br label %{term.target_label}")
-                elif tname in ("IrCondBranch", "CondBranch", "TypedIrCondBranch"):
+                elif tname in ("IrCondBranch", "CondBranch"):
                     cond_formatted = resolve_op(term.cond_reg)
                     cond_ty = get_type(term.cond_reg)
                     if cond_ty != "i1":
@@ -451,7 +410,7 @@ class LlvmEmitter:
                         self.lines.append(f"  {cast_reg} = icmp ne {cond_ty} {cond_formatted}, 0")
                         cond_formatted = cast_reg
                     self.lines.append(f"  br i1 {cond_formatted}, label %{term.then_label}, label %{term.else_label}")
-                elif tname in ("IrReturn", "Return", "TypedIrReturn"):
+                elif tname in ("IrReturn", "Return"):
                     if term.val_reg:
                         ret_fmt = resolve_op(term.val_reg)
                         ret_ty = get_type(term.val_reg)
@@ -465,6 +424,7 @@ class LlvmEmitter:
 class SystemBackendLinker:
     @staticmethod
     def verify_llvm_ir(llvm_ir: str) -> bool:
+        """Invokes the local llc system binary via a closed pipeline to validate assembly compliance."""
         try:
             subprocess.run(
                 ["llc", "-filetype=obj", "-o", os.devnull, "-"],
@@ -483,6 +443,7 @@ class SystemBackendLinker:
 
     @staticmethod
     def compile_to_assembly(llvm_ir: str) -> str:
+        """Compiles LLVM IR string into target machine assembly text."""
         try:
             result = subprocess.run(
                 ["llc", "-filetype=asm", "-o", "-", "-"],
@@ -498,6 +459,7 @@ class SystemBackendLinker:
 
     @staticmethod
     def compile_to_object(llvm_ir: str, output_path: str) -> bool:
+        """Compiles LLVM IR string directly to a machine object (.o) binary file."""
         try:
             subprocess.run(
                 ["llc", "-filetype=obj", "-o", output_path, "-"],
@@ -510,16 +472,6 @@ class SystemBackendLinker:
         except subprocess.CalledProcessError as e:
             err_msg = e.stderr.decode('utf-8', errors='ignore') if e.stderr else "Unknown llc compilation error"
             raise RuntimeError(f"LLVM object file generation failed: {err_msg}")
+EOF
 
-    def emit_simd_op(self, stmt):
-        width = stmt.width
-        op_map = {"ADD": "add", "SUB": "sub", "MUL": "mul", "DIV": "sdiv"}
-        llvm_op = op_map.get(stmt.op, "add")
-        dest_name = stmt.dest_ptr.name if hasattr(stmt.dest_ptr, 'name') else str(stmt.dest_ptr)
-        src1_name = stmt.src1_ptr.name if hasattr(stmt.src1_ptr, 'name') else str(stmt.src1_ptr)
-        src2_name = stmt.src2_ptr.name if hasattr(stmt.src2_ptr, 'name') else str(stmt.src2_ptr)
-        return (f"  ; --- BEGIN SIMD AUTO-VECTORIZATION ---\n"
-                f"  %v1 = load <{width} x i32>, ptr %{src1_name}.1\n"
-                f"  %v2 = load <{width} x i32>, ptr %{src2_name}.1\n"
-                f"  %vres = {llvm_op} <{width} x i32> %v1, %v2\n"
-                f"  store <{width} x i32> %vres, ptr %{dest_name}.1\n")
+echo "src/lowering/llvm.py updated with bidirectional type constraint solving."

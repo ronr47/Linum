@@ -1,0 +1,11 @@
+{
+    let q : COPY = %uninit_stub;
+
+    if %cond_reg {
+        q = %val_42;
+    } else {
+        q = %val_99;
+    }
+
+    return q;
+}

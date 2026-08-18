@@ -1,3 +1,10 @@
+#!/usr/bin/env bash
+set -e
+
+PY_BIN="$( [ -f "./.venv/bin/python" ] && echo "./.venv/bin/python" || echo "$(which python3)" )"
+export PYTHONPATH=".:$PYTHONPATH"
+
+cat <<'EOF' > src/frontend/parser.py
 from typing import List, Optional
 from linum.src.frontend.lexer import Token, TokenType
 from linum.src.ast.nodes import (
@@ -137,3 +144,6 @@ class Parser:
             stmts.append(self.parse_statement())
         self.consume(TokenType.RBRACE)
         return BlockStmt(statements=stmts)
+EOF
+
+echo "src/frontend/parser.py updated with verified AST dataclass signatures."

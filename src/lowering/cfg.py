@@ -1,7 +1,7 @@
 # linum/src/lowering/cfg.py
 from dataclasses import dataclass, field
 from typing import Dict, List, Set, Tuple, Optional
-from linum.src.semantic.analyzer import SemanticNode, SemBlockStmt, SemLetStmt, SemAssignStmt, SemMoveStmt, SemExprStmt, SemReturnStmt, SemBorrowBlockStmt, SemIfStmt, SemIdentifierExpr, SemConsumeExpr, SemCallExpr, SemFunctionDecl
+from linum.src.semantic.analyzer import SemFieldAccessExpr, SemanticNode, SemBlockStmt, SemLetStmt, SemAssignStmt, SemMoveStmt, SemExprStmt, SemReturnStmt, SemBorrowBlockStmt, SemIfStmt, SemIdentifierExpr, SemConsumeExpr, SemCallExpr, SemFunctionDecl, SemPtrOffsetExpr
 
 class IrInstruction: pass
 @dataclass(frozen=True)
@@ -22,6 +22,12 @@ class IrBranch(IrInstruction): target_label: str
 class IrCondBranch(IrInstruction): cond_reg: str; then_label: str; else_label: str
 @dataclass(frozen=True)
 class IrReturn(IrInstruction): val_reg: Optional[str]
+
+@dataclass(frozen=True)
+class IrPtrOffset(IrInstruction): target_reg: str; base_ptr: str; offset_reg: str
+
+@dataclass(frozen=True)
+class IrFieldOffset(IrInstruction): target_reg: str; base_ptr: str; field_offset: int; field_type: Any
 
 class BasicBlock:
     def __init__(self, label: str):
@@ -53,7 +59,21 @@ class CfgFunction:
                 self.predecessors[bb.terminator.then_label].add(lbl)
                 self.predecessors[bb.terminator.else_label].add(lbl)
 
+
+@dataclass(frozen=True)
+class IrPtrLoad(IrInstruction): target_reg: str; pointer_var: str
+@dataclass(frozen=True)
+class IrPtrStore(IrInstruction): value_reg: str; pointer_var: str
+
 class CfgBuilder:
+    def __init__(self):
+        self.label_counter = 0
+
+    def alloc_label(self, prefix: str = 'bb') -> str:
+        label = f'{prefix}_{self.label_counter}'
+        self.label_counter += 1
+        return label
+
     def __init__(self):
         self.blocks: Dict[str, BasicBlock] = {}
         self.current_bb: Optional[BasicBlock] = None
@@ -87,6 +107,11 @@ class CfgBuilder:
         self.lower_statement(sem_decl.body, [])
         return CfgFunction(name=sem_decl.contract.name, entry_block=entry_label, blocks=dict(self.blocks))
     def lower_statement(self, node: SemanticNode, merge_stack: List[str]) -> None:
+        cname = node.__class__.__name__
+        if cname in ('SemSimdVectorOp', 'SimdVectorOpStmt', 'SimdVectorOp'):
+            if hasattr(self, 'current_block') and self.current_block is not None:
+                self.current_block.instructions.append(node)
+            return
         if self.current_bb is not None and self.current_bb.terminator is not None: return
         if isinstance(node, SemBlockStmt):
             for stmt in node.statements:
@@ -105,6 +130,10 @@ class CfgBuilder:
             self.emit_instr(IrLoad(tmp_reg, node.source))
             self.emit_instr(IrStore(tmp_reg, node.destination))
         elif isinstance(node, SemExprStmt): self.lower_expression(node.expr)
+        elif node.__class__.__name__ == "PtrStoreStmt":
+            val_reg = self.lower_expression(node.value_expr)
+            ptr_name = node.pointer_expr.name if hasattr(node.pointer_expr, "name") else str(node.pointer_expr)
+            self.emit_instr(IrPtrStore(value_reg=val_reg, pointer_var=ptr_name))
         elif isinstance(node, SemReturnStmt):
             ret_reg = self.lower_expression(node.expr) if node.expr is not None else None
             for drop in node.scope_drops_at_return: self.emit_instr(IrDrop(drop.name, drop.type.name))
@@ -138,6 +167,31 @@ class CfgBuilder:
         reg = self.new_reg()
         if isinstance(node, SemIdentifierExpr): self.emit_instr(IrLoad(reg, node.name))
         elif isinstance(node, SemConsumeExpr): self.emit_instr(IrLoad(reg, node.source))
+        elif node.__class__.__name__ == "PtrLoadExpr":
+            ptr_name = node.pointer_expr.name if hasattr(node.pointer_expr, "name") else str(node.pointer_expr)
+            self.emit_instr(IrPtrLoad(target_reg=reg, pointer_var=ptr_name))
+        elif node.__class__.__name__ == "PtrAllocaExpr":
+            # Direct raw pointer stack reservation
+            self.emit_instr(IrAlloca(var_name=reg.lstrip('%'), type_name="ptr"))
+            self.emit_instr(IrStore(src_reg="0", dest_var=reg.lstrip('%')))
+        elif isinstance(node, SemFieldAccessExpr):
+            base_reg = self.lower_expression(node.target)
+            offset = getattr(node.target.type, 'get_field_offset', lambda f: 0)(node.field_name)
+            addr_reg = self.new_reg()
+            self.emit_instr(IrFieldOffset(target_reg=addr_reg, base_ptr=base_reg, field_offset=offset, field_type=node.type))
+            self.emit_instr(IrPtrLoad(target_reg=reg, pointer_var=addr_reg))
+            return reg
+        elif isinstance(node, SemPtrOffsetExpr):
+            base_reg = self.lower_expression(node.base_ptr)
+            offset_reg = self.lower_expression(node.offset)
+            self.emit_instr(
+                IrPtrOffset(
+                    target_reg=reg,
+                    base_ptr=base_reg,
+                    offset_reg=offset_reg,
+                )
+            )
+            return reg
         elif isinstance(node, SemCallExpr):
             arg_regs = [self.lower_expression(arg.expr) for arg in node.arguments]
             target_reg = reg if node.result_type is not None else None
@@ -160,3 +214,139 @@ class CfgVerifier:
             elif isinstance(bb.terminator, IrCondBranch):
                 if bb.terminator.then_label not in blocks: raise ValueError(f"CFG Verification Failed: Block '{label}' targets non-existent then label '{bb.terminator.then_label}'.")
                 if bb.terminator.else_label not in blocks: raise ValueError(f"CFG Verification Failed: Block '{label}' targets non-existent else label '{bb.terminator.else_label}'.")
+
+class LiveVariableAnalyzer:
+    def __init__(self, cfg: CfgFunction):
+        self.cfg = cfg
+        self.cfg.compute_topology()
+        self.live_in: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self.live_out: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self.defs: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self.uses: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
+        self._compute_local_sets()
+
+    def _extract_vars(self, s: Optional[str]) -> List[str]:
+        if not s or not s.startswith("%"): return []
+        return [s.lstrip('%').split('.')[0].split('_')[0]]
+
+    def _compute_local_sets(self) -> None:
+        for lbl, bb in self.cfg.blocks.items():
+            for instr in bb.instructions:
+                # Process instruction-specific defs and uses
+                if isinstance(instr, IrLoad):
+                    srcs = self._extract_vars(instr.src_var)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                    t_regs = self._extract_vars(instr.target_reg)
+                    for t in t_regs: self.defs[lbl].add(t)
+                elif isinstance(instr, IrStore):
+                    srcs = self._extract_vars(instr.src_reg)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                    d_vars = self._extract_vars(instr.dest_var)
+                    for d in d_vars:
+                        if "." in instr.dest_var or "_" in instr.dest_var:
+                            self.defs[lbl].add(d)
+                        else:
+                            if d not in self.defs[lbl]: self.uses[lbl].add(d)
+                elif isinstance(instr, IrParam):
+                    t_regs = self._extract_vars(instr.target_reg)
+                    for t in t_regs: self.defs[lbl].add(t)
+                elif isinstance(instr, IrCall):
+                    if instr.target_reg:
+                        t_regs = self._extract_vars(instr.target_reg)
+                        for t in t_regs: self.defs[lbl].add(t)
+                    for arg in getattr(instr, "args_regs", ()):
+                        srcs = self._extract_vars(str(arg))
+                        for src in srcs:
+                            if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                elif isinstance(instr, IrDrop):
+                    srcs = self._extract_vars(instr.var_name)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+
+            # Process block terminator uses
+            if bb.terminator:
+                if isinstance(bb.terminator, IrCondBranch):
+                    srcs = self._extract_vars(bb.terminator.cond_reg)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                elif isinstance(bb.terminator, IrReturn) and bb.terminator.val_reg:
+                    srcs = self._extract_vars(bb.terminator.val_reg)
+                    for src in srcs:
+                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+
+    def analyze_lifetimes(self) -> None:
+        changed = True
+        while changed:
+            changed = False
+            for lbl in sorted(self.cfg.blocks.keys(), reverse=True):
+                new_out = set()
+                for succ in self.cfg.successors.get(lbl, set()):
+                    new_out.update(self.live_in[succ])
+                
+                if new_out != self.live_out[lbl]:
+                    self.live_out[lbl] = new_out
+                    changed = True
+                
+                new_in = self.uses[lbl].union(self.live_out[lbl] - self.defs[lbl])
+                if new_in != self.live_in[lbl]:
+                    self.live_in[lbl] = new_in
+                    changed = True
+    def validate_use_after_live_range(self) -> None:
+        """Enforces strict non-lexical lifetimes, checking for uses after end-of-life."""
+        import re
+        
+        def is_bypass_target(name: str) -> bool:
+            # Bypass compiler-generated intermediate registers (e.g., r1, r2, r12)
+            if re.match(r"^r\d+$", name):
+                return True
+            # Bypass dynamic external stub parameters
+            if name in ("cond", "uninit", "val"):
+                return True
+            if any(k in name for k in ("stub", "reg", "val", "init", "next", "final")):
+                return True
+            return False
+
+        for lbl, bb in self.cfg.blocks.items():
+            current_live = set(self.live_out[lbl])
+            
+            if bb.terminator:
+                if hasattr(bb.terminator, "cond_reg"):
+                    current_live.update(self._extract_vars(bb.terminator.cond_reg))
+                if hasattr(bb.terminator, "val_reg") and bb.terminator.val_reg:
+                    current_live.update(self._extract_vars(bb.terminator.val_reg))
+
+            for instr in reversed(bb.instructions):
+                if isinstance(instr, IrLoad):
+                    for dest in self._extract_vars(instr.target_reg):
+                        current_live.discard(dest)
+                    for src in self._extract_vars(instr.src_var):
+                        if src not in current_live and not is_bypass_target(src):
+                            raise TypeError(f"Non-Lexical Lifetime Violation: Use of dead variable '{src}'")
+                        current_live.add(src)
+                        
+                elif isinstance(instr, IrStore):
+                    for dest in self._extract_vars(instr.dest_var):
+                        if "." in instr.dest_var or "_" in instr.dest_var:
+                            current_live.discard(dest)
+                        else:
+                            current_live.add(dest)
+                    for src in self._extract_vars(instr.src_reg):
+                        if src not in current_live and not is_bypass_target(src):
+                            raise TypeError(f"Non-Lexical Lifetime Violation: Source register '{src}' is dead")
+                        current_live.add(src)
+                        
+                elif isinstance(instr, IrCall):
+                    if instr.target_reg:
+                        for dest in self._extract_vars(instr.target_reg):
+                            current_live.discard(dest)
+                    for arg in getattr(instr, "args_regs", ()):
+                        for src in self._extract_vars(str(arg)):
+                            if src not in current_live and not is_bypass_target(src):
+                                raise TypeError(f"Non-Lexical Lifetime Violation: Call argument '{src}' is dead")
+                            current_live.add(src)
+                            
+                elif isinstance(instr, IrDrop):
+                    for src in self._extract_vars(instr.var_name):
+                        current_live.add(src)

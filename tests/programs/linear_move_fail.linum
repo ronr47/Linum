@@ -1,0 +1,4 @@
+{
+    let x : LINEAR = %uninit_stub;
+    return %val_0;
+}

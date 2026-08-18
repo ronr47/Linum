@@ -1,0 +1,9 @@
+{
+    let x : LINEAR = %uninit_stub;
+
+    borrow x as y {
+        x = %val_42;
+    }
+
+    return %val_0;
+}

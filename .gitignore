@@ -15,3 +15,9 @@ __pycache__/
 
 # local python environment
 .venv/
+
+# compiler recovery snapshots
+*.before-*
+*.backup.*
+*.corrupt*
+*.pre_*

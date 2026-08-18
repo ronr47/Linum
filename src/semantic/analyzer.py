@@ -99,6 +99,12 @@ class SemanticNode: pass
 class SemIdentifierExpr(SemanticNode): name: str; type: Type
 @dataclass(frozen=True)
 class SemConsumeExpr(SemanticNode): source: str; type: Type
+
+@dataclass(frozen=True)
+class SemPtrOffsetExpr(SemanticNode):
+    base_ptr: SemanticNode
+    offset: SemanticNode
+    type: Type
 @dataclass(frozen=True)
 class SemCallArg(SemanticNode): expr: SemanticNode; mode: OwnershipMode; borrowed: bool; source_name: Optional[str]
 @dataclass(frozen=True)
@@ -121,3 +127,19 @@ class SemBorrowBlockStmt(SemanticNode): source: str; borrow_alias: str; capabili
 class SemIfStmt(SemanticNode): condition: SemanticNode; then_block: SemBlockStmt; else_block: SemBlockStmt; then_drops: List[DropAction]; else_drops: List[DropAction]
 @dataclass(frozen=True)
 class SemFunctionDecl(SemanticNode): contract: FunctionContract; body: SemBlockStmt
+
+@dataclass(frozen=True)
+class SemFieldAccessExpr(SemanticNode):
+    target: SemanticNode
+    field_name: str
+    type: Type
+
+
+@dataclass(frozen=True)
+class SemSimdVectorOp(SemanticNode):
+    op: str
+    dest_ptr: SemanticNode
+    src1_ptr: SemanticNode
+    src2_ptr: SemanticNode
+    width: int = 4
+    elem_type: str = "i32"

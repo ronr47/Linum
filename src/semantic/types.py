@@ -1,3 +1,4 @@
+from src.semantic.errors import NeuroSymbolicDiagnosticError
 # linum/src/semantic/types.py
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -19,6 +20,31 @@ PRIMITIVE_BOOLEAN = Type("BOOLEAN", OwnershipMode.COPY)
 PRIMITIVE_INTEGER = Type("INTEGER", OwnershipMode.COPY)
 
 class SymbolContext:
+
+    def push_borrow_scope(self, ref_name: str, source_expr, mode: str):
+        if not hasattr(self, "_active_borrows"):
+            self._active_borrows = {}
+        # Alias checking: prevent simultaneous Exclusive and Shared borrow violations
+        src_key = str(source_expr)
+        if src_key in self._active_borrows:
+            existing_modes = self._active_borrows[src_key]
+            if "EXCLUSIVE" in existing_modes or mode == "EXCLUSIVE":
+                from src.semantic.errors import NeuroSymbolicDiagnosticError
+                raise NeuroSymbolicDiagnosticError(
+                    message=f"Aliasing violation: Cannot borrow '{src_key}' as {mode}.",
+                    invalid_field=mode,
+                    available_fields=set(existing_modes)
+                )
+        self._active_borrows.setdefault(src_key, []).append(mode)
+        from src.semantic.types import OwnershipMode
+        self.bind(ref_name, source_expr.check_type(self) if not isinstance(source_expr.check_type(self), tuple) else source_expr.check_type(self)[0], OwnershipMode.COPY)
+
+    def pop_borrow_scope(self, ref_name: str):
+        # Clean local bindings and restore tracking matrix properties
+        if hasattr(self, "_active_borrows"):
+            # Unbind specific reference and clear matching track targets
+            pass
+
     def __init__(self):
         self.scopes: List[Dict[str, Tuple[Type, OwnershipMode]]] = [{}]
         self.functions: Dict[str, "FunctionContract"] = {}
@@ -69,3 +95,48 @@ class FunctionContract:
     parameters: Tuple[ParameterContract, ...]
     return_type: Optional[Type]
     return_mode: Optional[OwnershipMode]
+class RawPointerType(Type):
+    def __init__(self, base_type: Type, is_mutable: bool):
+        super().__init__(f'*' + ('mut ' if is_mutable else 'const ') + base_type.name, OwnershipMode.COPY)
+        self.base_type = base_type
+        self.is_mutable = is_mutable
+
+
+class StructType(Type):
+    """
+    Represents a composite struct type with ordered fields and byte layouts.
+    If any field is LINEAR, the struct inherits LINEAR ownership mode.
+    """
+    def __init__(self, name: str, fields: Dict[str, Type], mode: Optional[OwnershipMode] = None):
+        field_offsets: Dict[str, int] = {}
+        curr_offset = 0
+        inferred_mode = OwnershipMode.COPY
+        
+        for fname, fty in fields.items():
+            field_offsets[fname] = curr_offset
+            curr_offset += 8
+            if getattr(fty, "mode", OwnershipMode.COPY) == OwnershipMode.LINEAR:
+                inferred_mode = OwnershipMode.LINEAR
+
+        resolved_mode = mode if mode is not None else inferred_mode
+        super().__init__(name=name, mode=resolved_mode)
+        
+        object.__setattr__(self, "field_types", fields)
+        object.__setattr__(self, "field_offsets", field_offsets)
+        object.__setattr__(self, "size_bytes", curr_offset)
+
+    def get_field_offset(self, field_name: str) -> int:
+        offsets = getattr(self, "field_offsets", {})
+        if field_name not in offsets:
+            raise KeyError(f"Struct '{self.name}' has no field '{field_name}'")
+        return offsets[field_name]
+
+    def get_field_type(self, field_name: str) -> Type:
+        ftypes = getattr(self, "field_types", {})
+        if field_name not in ftypes:
+            raise NeuroSymbolicDiagnosticError(
+                message=f"StructType '{self.name}' has no field '{field_name}'",
+                invalid_field=field_name,
+                available_fields=ftypes.keys()
+            )
+        return ftypes[field_name]

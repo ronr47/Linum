@@ -1,6 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple, Optional
 
+from linum.src.diagnostics.span import SourceSpan, UNKNOWN_SPAN
+from linum.src.diagnostics.semantic import SemanticError
+
 from linum.src.semantic.types import (
     Type,
     OwnershipMode,
@@ -35,6 +38,8 @@ from linum.src.semantic.analyzer import (
 
 
 class ASTNode:
+    span: SourceSpan = UNKNOWN_SPAN
+
     def check_type(self, ctx: SymbolContext) -> Type:
         raise NotImplementedError()
 
@@ -50,6 +55,7 @@ class ASTNode:
 @dataclass(frozen=True)
 class IdentifierExpr(ASTNode):
     name: str
+    span: SourceSpan = UNKNOWN_SPAN
 
     def check_type(self, ctx: SymbolContext) -> Type:
         ty, _ = ctx.lookup(self.name)
@@ -80,10 +86,11 @@ class IdentifierExpr(ASTNode):
             OwnerState.DEAD,
             OwnerState.UNINITIALIZED,
         ):
-            raise TypeError(
+            raise SemanticError(
                 f"Use-After-Move / Uninitialized Violation: "
                 f"Variable '{self.name}' has been invalidated "
-                f"({state.name})."
+                f"({state.name}).",
+                self.span,
             )
 
         if flow.active_borrows.get(self.name):
@@ -106,6 +113,7 @@ class IdentifierExpr(ASTNode):
 @dataclass(frozen=True)
 class ConsumeExpr(ASTNode):
     source: str
+    span: SourceSpan = UNKNOWN_SPAN
 
     def check_type(self, ctx: SymbolContext) -> Type:
         ty, _ = ctx.lookup(self.source)
@@ -1246,6 +1254,12 @@ def check_statement_with_contract(
     next_borrow_id: List[int],
     current_contract: FunctionContract,
 ) -> Tuple[FlowState, SemanticNode]:
+    if type(stmt).__name__ == "SimdVectorOpStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
+    if type(stmt).__name__ == "BorrowStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
+    if type(stmt).__name__ == "SimdVectorOpStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
+    if type(stmt).__name__ == "BorrowStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
+    if type(stmt).__name__ == "BorrowStmt":
+        return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if isinstance(stmt, LetStmt):
         return stmt.check(
             ctx,
@@ -1302,3 +1316,110 @@ def check_statement_with_contract(
         "Unidentified AST structure node tracking vector: "
         f"{type(stmt).__name__}"
     )
+class PtrAllocaExpr(ASTNode):
+    def __init__(self, target_type, span=None):
+        super().__init__(span)
+        self.target_type = target_type
+
+class PtrLoadExpr(ASTNode):
+    def __init__(self, pointer_expr, span=None):
+        super().__init__(span)
+        self.pointer_expr = pointer_expr
+
+class PtrStoreStmt(ASTNode):
+    def __init__(self, pointer_expr, value_expr, span=None):
+        super().__init__(span)
+        self.pointer_expr = pointer_expr
+        self.value_expr = value_expr
+class PtrOffsetExpr(ASTNode):
+    def __init__(self, base_ptr_expr, offset_expr, span=None):
+        self.base_ptr_expr = base_ptr_expr
+        self.offset_expr = offset_expr
+        self.span = span
+
+    def check_type(self, ctx):
+        from linum.src.semantic.types import PRIMITIVE_INTEGER
+
+        base_type = self.base_ptr_expr.check_type(ctx)
+        offset_type = self.offset_expr.check_type(ctx)
+
+        if getattr(base_type, "name", None) != "ptr":
+            raise TypeError(
+                f"Pointer arithmetic requires ptr base, got {base_type!r}"
+            )
+
+        if offset_type != PRIMITIVE_INTEGER:
+            raise TypeError(
+                f"Pointer arithmetic requires INTEGER offset, got {offset_type!r}"
+            )
+
+        return base_type
+
+    def check_ownership(self, flow, ctx, next_borrow_id):
+        from linum.src.semantic.analyzer import SemPtrOffsetExpr
+        flow, sem_base = self.base_ptr_expr.check_ownership(flow, ctx, next_borrow_id)
+        flow, sem_offset = self.offset_expr.check_ownership(flow, ctx, next_borrow_id)
+        base_type = self.check_type(ctx)
+        return flow, SemPtrOffsetExpr(base_ptr=sem_base, offset=sem_offset, type=base_type)
+
+    def check(self, ctx):
+        return self.check_type(ctx)
+
+
+class StructDecl(ASTNode):
+    def __init__(self, name: str, fields: Dict[str, Type], span=None):
+        self.name = name
+        self.fields = fields
+        self.span = span
+
+    def check(self, ctx):
+        from linum.src.semantic.types import StructType
+        st = StructType(self.name, self.fields)
+        ctx.bind(self.name, st, st.mode)
+        return st
+
+
+class FieldAccessExpr(ASTNode):
+    def __init__(self, target_expr: ASTNode, field_name: str, span=None):
+        self.target_expr = target_expr
+        self.field_name = field_name
+        self.span = span
+
+    def check_type(self, ctx):
+        target_ty = self.target_expr.check_type(ctx)
+        if hasattr(target_ty, "get_field_type"):
+            return target_ty.get_field_type(self.field_name)
+        raise TypeError(f"Target '{target_ty!r}' is not a struct type and does not contain field '{self.field_name}'")
+
+    def check_ownership(self, flow, ctx, next_borrow_id):
+        from linum.src.semantic.analyzer import SemFieldAccessExpr
+        flow, sem_target = self.target_expr.check_ownership(flow, ctx, next_borrow_id)
+        field_ty = self.check_type(ctx)
+        return flow, SemFieldAccessExpr(target=sem_target, field_name=self.field_name, type=field_ty)
+
+    def check(self, ctx):
+        return self.check_type(ctx)
+
+
+class SimdVectorOpStmt(ASTNode):
+    def __init__(self, op: str, dest_ptr: ASTNode, src1_ptr: ASTNode, src2_ptr: ASTNode, width: int = 4, elem_type: str = "i32", span=None):
+        super().__init__(span)
+        self.op = op
+        self.dest_ptr = dest_ptr
+        self.src1_ptr = src1_ptr
+        self.src2_ptr = src2_ptr
+        self.width = width
+        self.elem_type = elem_type
+
+    def check_type(self, ctx):
+        return None
+
+    def check_ownership(self, flow, ctx, next_borrow_id):
+        from linum.src.semantic.analyzer import SemSimdVectorOp
+        flow, s_dest = self.dest_ptr.check_ownership(flow, ctx, next_borrow_id)
+        flow, s_src1 = self.src1_ptr.check_ownership(flow, ctx, next_borrow_id)
+        flow, s_src2 = self.src2_ptr.check_ownership(flow, ctx, next_borrow_id)
+        return flow, SemSimdVectorOp(op=self.op, dest_ptr=s_dest, src1_ptr=s_src1, src2_ptr=s_src2, width=self.width, elem_type=self.elem_type)
+
+    def check(self, ctx):
+        return None
