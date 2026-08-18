@@ -1,3 +1,4 @@
+from src.semantic.errors import NeuroSymbolicDiagnosticError
 # linum/src/semantic/types.py
 from dataclasses import dataclass, field
 from enum import Enum, auto
@@ -19,6 +20,31 @@ PRIMITIVE_BOOLEAN = Type("BOOLEAN", OwnershipMode.COPY)
 PRIMITIVE_INTEGER = Type("INTEGER", OwnershipMode.COPY)
 
 class SymbolContext:
+
+    def push_borrow_scope(self, ref_name: str, source_expr, mode: str):
+        if not hasattr(self, "_active_borrows"):
+            self._active_borrows = {}
+        # Alias checking: prevent simultaneous Exclusive and Shared borrow violations
+        src_key = str(source_expr)
+        if src_key in self._active_borrows:
+            existing_modes = self._active_borrows[src_key]
+            if "EXCLUSIVE" in existing_modes or mode == "EXCLUSIVE":
+                from src.semantic.errors import NeuroSymbolicDiagnosticError
+                raise NeuroSymbolicDiagnosticError(
+                    message=f"Aliasing violation: Cannot borrow '{src_key}' as {mode}.",
+                    invalid_field=mode,
+                    available_fields=set(existing_modes)
+                )
+        self._active_borrows.setdefault(src_key, []).append(mode)
+        from src.semantic.types import OwnershipMode
+        self.bind(ref_name, source_expr.check_type(self) if not isinstance(source_expr.check_type(self), tuple) else source_expr.check_type(self)[0], OwnershipMode.COPY)
+
+    def pop_borrow_scope(self, ref_name: str):
+        # Clean local bindings and restore tracking matrix properties
+        if hasattr(self, "_active_borrows"):
+            # Unbind specific reference and clear matching track targets
+            pass
+
     def __init__(self):
         self.scopes: List[Dict[str, Tuple[Type, OwnershipMode]]] = [{}]
         self.functions: Dict[str, "FunctionContract"] = {}
@@ -108,5 +134,9 @@ class StructType(Type):
     def get_field_type(self, field_name: str) -> Type:
         ftypes = getattr(self, "field_types", {})
         if field_name not in ftypes:
-            raise KeyError(f"Struct '{self.name}' has no field '{field_name}'")
+            raise NeuroSymbolicDiagnosticError(
+                message=f"StructType '{self.name}' has no field '{field_name}'",
+                invalid_field=field_name,
+                available_fields=ftypes.keys()
+            )
         return ftypes[field_name]

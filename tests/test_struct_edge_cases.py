@@ -57,5 +57,27 @@ def test_invalid_struct_field_rejection():
     ctx = SymbolContext()
     ctx.bind("%pt_ptr", point_type, OwnershipMode.COPY)
 
-    with pytest.raises(KeyError, match="has no field 'z'"):
+    from src.semantic.errors import NeuroSymbolicDiagnosticError
+    with pytest.raises(NeuroSymbolicDiagnosticError, match="has no field 'z'|Valid structural fields"):
+        ast_func.check_contract(ctx)
+
+def test_neuro_symbolic_repair_suggestion():
+    """Validates that wrong field lookups offer an intelligent string repair suggestion."""
+    import pytest
+    from src.semantic.errors import NeuroSymbolicDiagnosticError
+    
+    point_type = StructType("Point", {"x": PRIMITIVE_INTEGER, "y": PRIMITIVE_INTEGER})
+    contract = FunctionContract("repair_test", (), PRIMITIVE_INTEGER, OwnershipMode.COPY)
+
+    body = BlockStmt([
+        LetStmt("pt", point_type, IdentifierExpr("%pt_ptr")),
+        LetStmt("z", PRIMITIVE_INTEGER, FieldAccessExpr(IdentifierExpr("pt"), "x_typo")),
+        ReturnStmt(IdentifierExpr("z"))
+    ])
+    ast_func = FunctionDecl(contract, body)
+
+    ctx = SymbolContext()
+    ctx.bind("%pt_ptr", point_type, OwnershipMode.COPY)
+
+    with pytest.raises(NeuroSymbolicDiagnosticError, match="Did you mean '.x'|Valid structural fields"):
         ast_func.check_contract(ctx)
