@@ -1254,12 +1254,14 @@ def check_statement_with_contract(
     next_borrow_id: List[int],
     current_contract: FunctionContract,
 ) -> Tuple[FlowState, SemanticNode]:
+    if type(stmt).__name__ == "ReggeSimplexStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "MetricTensorFieldStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "BraidGeneratorStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "BioSynthesisPayloadStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "QuantumSymmetricLoopStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "SimdVectorOpStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "BorrowStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
+    if type(stmt).__name__ == "ReggeSimplexStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "MetricTensorFieldStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "BraidGeneratorStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
     if type(stmt).__name__ == "BioSynthesisPayloadStmt": return stmt.check_with_contract(ctx, flow, next_borrow_id, current_contract)
