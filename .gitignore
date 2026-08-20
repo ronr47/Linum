@@ -21,3 +21,9 @@ __pycache__/
 *.backup.*
 *.corrupt*
 *.pre_*
+*.o
+*.elf
+*.bin
+target/
+.builds/
+/tmp/qemu_fiber_serial.log
