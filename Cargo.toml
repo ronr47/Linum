@@ -2,6 +2,8 @@
 members = [
     "native/linum_cranelift",
     "native/linum_ebpf_loader",
-    "native/linum_wasi"
+    "native/linum_wasi",
+    "src/linum_fastjit",
+    "src/linum_lsp",
 ]
 resolver = "2"

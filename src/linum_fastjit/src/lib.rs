@@ -1,7 +1,6 @@
 use cranelift::prelude::*;
 use cranelift_jit::{JITBuilder, JITModule};
 use cranelift_module::{Linkage, Module};
-use std::slice;
 
 pub struct FastJITRuntime {
     builder_context: FunctionBuilderContext,

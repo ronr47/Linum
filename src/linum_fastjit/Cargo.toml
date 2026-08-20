@@ -3,13 +3,9 @@ name = "linum_fastjit"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
-cranelift = "0.115.0"
-cranelift-module = "0.115.0"
-cranelift-jit = "0.115.0"
-cranelift-frontend = "0.115.0"
-target-lexicon = "0.13.1"
 anyhow = "1.0"
+cranelift = "0.115.1"
+cranelift-jit = "0.115.1"
+cranelift-native = "0.115.1"
+cranelift-module = "0.115.1"
