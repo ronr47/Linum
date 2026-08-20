@@ -107,7 +107,7 @@ def main(args: Optional[List[str]] = None) -> int:
             return 0
         elif opts.emit == "bpf":
             out_file = opts.output if opts.output else str(input_path.with_suffix(".o"))
-            cmd = ["clang", "-O2", "-target", "bpf", "-c", "-", "-o", out_file]
+            cmd = ["clang", "-O2", "-target", "bpf", "-x", "ir", "-c", "-", "-o", out_file]
             proc = subprocess.run(cmd, input=llvm_ir.encode("utf-8"), capture_output=True)
             if proc.returncode != 0:
                 raise RuntimeError(f"BPF compilation failed: {proc.stderr.decode('utf-8')}")
