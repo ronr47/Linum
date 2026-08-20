@@ -27,3 +27,7 @@ __pycache__/
 target/
 .builds/
 /tmp/qemu_fiber_serial.log
+recovered_pyramids_full/
+carved_*/
+archive/
+mojo/
