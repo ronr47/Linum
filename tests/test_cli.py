@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from linum.src.cli import main
+from linum.cli import main
 
 def test_cli_emit_llvm_stdout(tmp_path, capsys):
     src_file = tmp_path / "simple.linum"

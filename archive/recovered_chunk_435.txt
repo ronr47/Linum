@@ -1,0 +1,37 @@
+#version 450
+uniform vec4 webgl_6548bd7c7fe25150;
+uniform float webgl_f59b33e8f23ef551;
+uniform vec4 webgl_72cded0295832cdd;
+uniform vec2 webgl_1dba9277952bb7c5;
+uniform sampler2D webgl_22924d5ebfdde298;
+uniform sampler2D webgl_b9d26666461b5dc5;
+in vec2 webgl_84c10a15da7dedbf;
+in vec2 webgl_6b5ae4c0eb6686d2;
+in vec4 webgl_305ec9213d196c6e;
+in vec4 webgl_1d8a2d7be11614bf;
+flat in vec2 webgl_55c10476767709ea;
+flat in ivec2 webgl_30ac2c7281ca8191;
+out vec4 webgl_37014216061da1c5;
+void main(){
+  (webgl_37014216061da1c5 = vec4(0.0, 0.0, 0.0, 0.0));
+  vec3 webgl_73bdb4292ca2045a = vec3(webgl_55c10476767709ea, (webgl_55c10476767709ea.y * webgl_55c10476767709ea.y));
+  bvec4 webgl_2cb3aa2a98f1614f = greaterThanEqual(webgl_305ec9213d196c6e, vec4(0.0, 0.0, 0.0, 0.0));
+  vec4 webgl_e05bbd906e513a1a = (texture(webgl_22924d5ebfdde298, webgl_6b5ae4c0eb6686d2) * ((all(webgl_2cb3aa2a98f1614f.xy)) ? (webgl_73bdb4292ca2045a.x) : (0.0)));
+  int webgl_c136265746f4409f = min(webgl_30ac2c7281ca8191.x, 300);
+  for (int webgl_441e866d43abd7e9 = 1; (webgl_441e866d43abd7e9 <= webgl_c136265746f4409f); (webgl_441e866d43abd7e9 += 2))
+  {
+    (webgl_73bdb4292ca2045a.xy *= webgl_73bdb4292ca2045a.yz);
+    float webgl_1c2adb232fa0e605 = webgl_73bdb4292ca2045a.x;
+    (webgl_73bdb4292ca2045a.xy *= webgl_73bdb4292ca2045a.yz);
+    (webgl_1c2adb232fa0e605 += webgl_73bdb4292ca2045a.x);
+    float webgl_fe345b93fca189f1 = (webgl_73bdb4292ca2045a.x / webgl_1c2adb232fa0e605);
+    vec4 webgl_ca1b4c7c24db177f = (webgl_305ec9213d196c6e.xyxy + (vec4(-1.0, 1.0, 1.0, -1.0) * float(webgl_441e866d43abd7e9)));
+    bvec4 webgl_72b422e5de9a4d03 = greaterThanEqual(webgl_ca1b4c7c24db177f.xyxy, vec4(0.0, 0.0, 1.0, -1.0));
+    bvec4 webgl_4aaae532ff396a7f = greaterThanEqual(webgl_ca1b4c7c24db177f.zwzw, vec4(0.0, 0.0, -1.0, 1.0));
+    vec2 webgl_4a6bc31360b2c580 = (((all(webgl_72b422e5de9a4d03.xy)) ? (vec2(1.0, webgl_fe345b93fca189f1)) : (vec2(webgl_fe345b93fca189f1, 1.0))) - ((all(webgl_72b422e5de9a4d03.zw)) ? (0.0) : (webgl_fe345b93fca189f1)));
+    vec2 webgl_6afdcc4f662cc627 = (((all(webgl_4aaae532ff396a7f.xy)) ? (vec2(1.0, webgl_fe345b93fca189f1)) : (vec2(webgl_fe345b93fca189f1, 1.0))) - ((all(webgl_4aaae532ff396a7f.zw)) ? (0.0) : (webgl_fe345b93fca189f1)));
+    vec2 webgl_7b40659f46eb772d = (webgl_6b5ae4c0eb6686d2 - (webgl_1dba9277952bb7c5 * (float(webgl_441e866d43abd7e9) + webgl_4a6bc31360b2c580.y)));
+    vec2 webgl_35b03fb1a1357683 = (webgl_6b5ae4c0eb6686d2 + (webgl_1dba9277952bb7c5 * (float(webgl_441e866d43abd7e9) + webgl_6afdcc4f662cc627.y)));
+    (webgl_e05bbd906e513a1a += (webgl_1c2adb232fa0e605 * ((texture(webgl_22924d5ebfdde298, webgl_7b40659f46eb772d) * webgl_4a6bc31360b2c580.x) + (texture(webgl_22924d5ebfdde298, webgl_35b03fb1a1357683) * webgl_6afdcc4f662cc627.x))));
+  }
+  float webgl_2f7472c35021665d = texturc

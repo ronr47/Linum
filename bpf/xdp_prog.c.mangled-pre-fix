@@ -1,0 +1,91 @@
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+
+#define MAX_PACKET_SIZE 1500
+
+struct PacketFrame {
+    uint64_t packet_id;
+    uint32_t payload_len;
+    uint64_t ingress_timestamp_cycles;
+    uint8_t payload[MAX_PACKET_SIZE];
+};
+
+struct {
+    __uint(type, BPF_RINGBUF);
+} packet_ringbuf SEC("maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(max_entries, 1);
+    __type(key, uint32_t);
+    __type(value, uint64_t);
+} stats SEC("maps");
+
+SEC("xdp")
+int xdp_prog(struct xdp_md *ctx) {
+    void *data_end = (void *)(long)ctx->data_end;
+    void *data = (void *)(long)ctx->data;
+
+    // Parse Ethernet header
+    struct ethhdr *eth = data;
+    if ((void *)(eth + 1) > data_end)
+        return XDP_DROP;
+
+    if (eth->h_proto != __constant_htons(ETH_P_IP))
+        return XDP_PASS;
+
+    // Parse IP header
+    struct iphdr *ip = (void *)(eth + 1);
+    if ((void *)(ip + 1) > data_end)
+        return XDP_DROP;
+
+    if (ip->protocol != IPPROTO_TCP)
+        return XDP_PASS;
+
+    // Parse TCP header
+    struct tcphdr *tcp = (void *)(ip + 1);
+    if ((void *)(tcp + 1) > data_end)
+        return XDP_DROP;
+
+    // Check source port pattern
+    uint16_t src_port = tcp->source;
+    if ((src_port & 0xFF00) != 0x1200) {
+        // Early reject: does not match pattern
+        return XDP_DROP;
+    }
+
+    // Prepare PacketFrame
+    struct PacketFrame frame = {0};
+    frame.packet_id = bpf_ktime_get_ns(); // Use timestamp as ID
+    frame.payload_len = (uint32_t)(data_end - (void *)(tcp + 1));
+    frame.ingress_timestamp_cycles = bpf_ktime_get_cycles();
+
+    // Copy payload
+    uint8_t *payload_start = (uint8_t *)(tcp + 1);
+    uint32_t copy_len = frame.payload_len;
+    if (copy_len > MAX_PACKET_SIZE)
+        copy_len = MAX_PACKET_SIZE;
+
+    if ((void *)(payload_start + copy_len) > data_end)
+        return XDP_DROP;
+
+    __builtin_memcpy(frame.payload, payload_start, copy_len);
+
+    // Reserve space in ring buffer
+    void *ringbuf_ptr = bpf_ringbuf_reserve(&packet_ringbuf, sizeof(struct PacketFrame), 0);
+    if (!ringbuf_ptr)
+        return XDP_DROP; // Buffer full, drop packet silently
+
+    __builtin_memcpy(ringbuf_ptr, &frame, sizeof(struct PacketFrame));
+    bpf_ringbuf_submit(ringbuf_ptr, 0);
+
+    // Update stats
+    __sync_fetch_and_add(&stats.packet_counter, 1);
+
+    return XDP_PASS;
+}
+
+char _license[] SEC("license") = "GPL";

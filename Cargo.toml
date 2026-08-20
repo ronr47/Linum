@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "native/linum_cranelift",
+    "native/linum_ebpf_loader",
+    "native/linum_wasi"
+]
+resolver = "2"

@@ -1,10 +1,10 @@
 import unittest
-from linum.src.frontend.lexer import Lexer
-from linum.src.frontend.parser import Parser
-from linum.src.semantic.types import SymbolContext, FunctionContract, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN, OwnershipMode
-from linum.src.ast.nodes import FunctionDecl
-from linum.src.lowering.cfg import CfgBuilder, CfgVerifier
-from linum.src.lowering.ssa import SsaConverter, SsaVerifier
+from linum.frontend.lexer import Lexer
+from linum.frontend.parser import Parser
+from linum.semantic.types import SymbolContext, FunctionContract, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN, OwnershipMode
+from linum.ast.nodes import FunctionDecl
+from linum.lowering.cfg import CfgBuilder, CfgVerifier
+from linum.lowering.ssa import SsaConverter, SsaVerifier
 
 class TestLinumFrontend(unittest.TestCase):
     def test_lexer_and_parser_integration(self):

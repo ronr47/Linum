@@ -1,0 +1,2684 @@
+/*! THIS FILE IS AUTO-GENERATED: webpack.system-addon.config.js */
+var NewtabRenderUtils;
+/******/ (() => { // webpackBootstrap
+/******/ 	"use strict";
+/******/ 	// The require scope
+/******/ 	var __webpack_require__ = {};
+/******/ 	
+/************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__webpack_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__webpack_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__webpack_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/global */
+/******/ 	(() => {
+/******/ 		__webpack_require__.g = (function() {
+/******/ 			if (typeof globalThis === 'object') return globalThis;
+/******/ 			try {
+/******/ 				return this || new Function('return this')();
+/******/ 			} catch (e) {
+/******/ 				if (typeof window === 'object') return window;
+/******/ 			}
+/******/ 		})();
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__webpack_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/************************************************************************/
+var __webpack_exports__ = {};
+// ESM COMPAT FLAG
+__webpack_require__.r(__webpack_exports__);
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  NewTab: () => (/* binding */ NewTab),
+  renderCache: () => (/* binding */ renderCache),
+  renderWithoutState: () => (/* binding */ renderWithoutState)
+});
+
+;// CONCATENATED MODULE: ./common/Actions.mjs
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+// This file is accessed from both content and system scopes.
+
+const MAIN_MESSAGE_TYPE = "ActivityStream:Main";
+const CONTENT_MESSAGE_TYPE = "ActivityStream:Content";
+const PRELOAD_MESSAGE_TYPE = "ActivityStream:PreloadedBrowser";
+const UI_CODE = 1;
+const BACKGROUND_PROCESS = 2;
+
+/**
+ * globalImportContext - Are we in UI code (i.e. react, a dom) or some kind of background process?
+ *                       Use this in action creators if you need different logic
+ *                       for ui/background processes.
+ */
+const globalImportContext =
+  typeof Window === "undefined" ? BACKGROUND_PROCESS : UI_CODE;
+
+// Create an object that avoids accidental differing key/value pairs:
+// {
+//   INIT: "INIT",
+//   UNINIT: "UNINIT"
+// }
+const actionTypes = {};
+
+for (const type of [
+  "ABOUT_SPONSORED_TOP_SITES",
+  "ADDONS_INFO_REQUEST",
+  "ADDONS_INFO_RESPONSE",
+  "ADS_FEED_UPDATE",
+  "ADS_INIT",
+  "ADS_RESET",
+  "ADS_UPDATE_SPOCS",
+  "ADS_UPDATE_TILES",
+  "BLOCK_SECTION",
+  "BLOCK_URL",
+  "BOOKMARK_URL",
+  "CARD_SECTION_IMPRESSION",
+  "CLEAR_PREF",
+  "COPY_DOWNLOAD_LINK",
+  "DELETE_BOOKMARK_BY_ID",
+  "DELETE_HISTORY_URL",
+  "DIALOG_CANCEL",
+  "DIALOG_CLOSE",
+  "DIALOG_OPEN",
+  "DISABLE_SEARCH",
+  "DISCOVERY_STREAM_CONFIG_CHANGE",
+  "DISCOVERY_STREAM_CONFIG_RESET",
+  "DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS",
+  "DISCOVERY_STREAM_CONFIG_SETUP",
+  "DISCOVERY_STREAM_CONFIG_SET_VALUE",
+  "DISCOVERY_STREAM_DEV_BLOCKS",
+  "DISCOVERY_STREAM_DEV_BLOCKS_RESET",
+  "DISCOVERY_STREAM_DEV_EXPIRE_CACHE",
+  "DISCOVERY_STREAM_DEV_IDLE_DAILY",
+  "DISCOVERY_STREAM_DEV_IMPRESSIONS",
+  "DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER",
+  "DISCOVERY_STREAM_DEV_SYNC_RS",
+  "DISCOVERY_STREAM_DEV_SYSTEM_TICK",
+  "DISCOVERY_STREAM_EXPERIMENT_DATA",
+  "DISCOVERY_STREAM_FEEDS_UPDATE",
+  "DISCOVERY_STREAM_FEED_UPDATE",
+  "DISCOVERY_STREAM_IMPRESSION_STATS",
+  "DISCOVERY_STREAM_LAYOUT_RESET",
+  "DISCOVERY_STREAM_LAYOUT_UPDATE",
+  "DISCOVERY_STREAM_LINK_BLOCKED",
+  "DISCOVERY_STREAM_LOADED_CONTENT",
+  "DISCOVERY_STREAM_PERSONALIZATION_INIT",
+  "DISCOVERY_STREAM_PERSONALIZATION_LAST_UPDATED",
+  "DISCOVERY_STREAM_PERSONALIZATION_OVERRIDE",
+  "DISCOVERY_STREAM_PERSONALIZATION_RESET",
+  "DISCOVERY_STREAM_PERSONALIZATION_TOGGLE",
+  "DISCOVERY_STREAM_PERSONALIZATION_UPDATED",
+  "DISCOVERY_STREAM_PREFS_SETUP",
+  "DISCOVERY_STREAM_RETRY_FEED",
+  "DISCOVERY_STREAM_SPOCS_CAPS",
+  "DISCOVERY_STREAM_SPOCS_ENDPOINT",
+  "DISCOVERY_STREAM_SPOCS_ONDEMAND_LOAD",
+  "DISCOVERY_STREAM_SPOCS_ONDEMAND_RESET",
+  "DISCOVERY_STREAM_SPOCS_ONDEMAND_UPDATE",
+  "DISCOVERY_STREAM_SPOCS_PLACEMENTS",
+  "DISCOVERY_STREAM_SPOCS_UPDATE",
+  "DISCOVERY_STREAM_SPOC_BLOCKED",
+  "DISCOVERY_STREAM_SPOC_IMPRESSION",
+  "DISCOVERY_STREAM_TOPICS_LOADING",
+  "DISCOVERY_STREAM_USER_EVENT",
+  "DOWNLOAD_CHANGED",
+  "FAKE_FOCUS_SEARCH",
+  "FILL_SEARCH_TERM",
+  "FOLLOW_SECTION",
+  "HANDOFF_SEARCH_TO_AWESOMEBAR",
+  "HIDE_PERSONALIZE",
+  "HIDE_TOAST_MESSAGE",
+  "INFERRED_PERSONALIZATION_MODEL_UPDATE",
+  "INFERRED_PERSONALIZATION_REFRESH",
+  "INFERRED_PERSONALIZATION_RESET",
+  "INFERRED_PERSONALIZATION_UPDATE",
+  "INIT",
+  "INLINE_SELECTION_CLICK",
+  "INLINE_SELECTION_IMPRESSION",
+  "MESSAGE_BLOCK",
+  "MESSAGE_CLICK",
+  "MESSAGE_DISMISS",
+  "MESSAGE_IMPRESSION",
+  "MESSAGE_NOTIFY_VISIBILITY",
+  "MESSAGE_SET",
+  "MESSAGE_TOGGLE_VISIBILITY",
+  "NEW_TAB_INIT",
+  "NEW_TAB_INITIAL_STATE",
+  "NEW_TAB_LOAD",
+  "NEW_TAB_REHYDRATED",
+  "NEW_TAB_STATE_REQUEST",
+  "NEW_TAB_STATE_REQUEST_STARTUPCACHE",
+  "NEW_TAB_STATE_REQUEST_WITHOUT_STARTUPCACHE",
+  "NEW_TAB_UNLOAD",
+  "OPEN_DOWNLOAD_FILE",
+  "OPEN_LINK",
+  "OPEN_NEW_WINDOW",
+  "OPEN_PRIVATE_WINDOW",
+  "OPEN_WEBEXT_SETTINGS",
+  "PARTNER_LINK_ATTRIBUTION",
+  "PLACES_BOOKMARKS_REMOVED",
+  "PLACES_BOOKMARK_ADDED",
+  "PLACES_HISTORY_CLEARED",
+  "PLACES_LINKS_CHANGED",
+  "PLACES_LINKS_DELETED",
+  "PLACES_LINK_BLOCKED",
+  "POCKET_CTA",
+  "POCKET_THUMBS_DOWN",
+  "POCKET_THUMBS_UP",
+  "POCKET_WAITING_FOR_SPOC",
+  "PREFS_INITIAL_VALUES",
+  "PREF_CHANGED",
+  "PREVIEW_REQUEST",
+  "PREVIEW_REQUEST_CANCEL",
+  "PREVIEW_RESPONSE",
+  "PROMO_CARD_CLICK",
+  "PROMO_CARD_DISMISS",
+  "PROMO_CARD_IMPRESSION",
+  "REMOVE_DOWNLOAD_FILE",
+  "REPORT_AD_OPEN",
+  "REPORT_AD_SUBMIT",
+  "REPORT_CLOSE",
+  "REPORT_CONTENT_OPEN",
+  "REPORT_CONTENT_SUBMIT",
+  "RICH_ICON_MISSING",
+  "SAVE_SESSION_PERF_DATA",
+  "SCREENSHOT_UPDATED",
+  "SECTION_DEREGISTER",
+  "SECTION_DISABLE",
+  "SECTION_ENABLE",
+  "SECTION_OPTIONS_CHANGED",
+  "SECTION_PERSONALIZATION_SET",
+  "SECTION_PERSONALIZATION_UPDATE",
+  "SECTION_REGISTER",
+  "SECTION_UPDATE",
+  "SECTION_UPDATE_CARD",
+  "SETTINGS_CLOSE",
+  "SETTINGS_OPEN",
+  "SET_PREF",
+  "SHOW_DOWNLOAD_FILE",
+  "SHOW_FIREFOX_ACCOUNTS",
+  "SHOW_PERSONALIZE",
+  "SHOW_PRIVACY_INFO",
+  "SHOW_SEARCH",
+  "SHOW_TOAST_MESSAGE",
+  "SKIPPED_SIGNIN",
+  "SOV_UPDATED",
+  "SUBMIT_EMAIL",
+  "SUBMIT_SIGNIN",
+  "SYSTEM_TICK",
+  "TELEMETRY_IMPRESSION_STATS",
+  "TELEMETRY_USER_EVENT",
+  "TOPIC_SELECTION_IMPRESSION",
+  "TOPIC_SELECTION_MAYBE_LATER",
+  "TOPIC_SELECTION_SPOTLIGHT_CLOSE",
+  "TOPIC_SELECTION_SPOTLIGHT_OPEN",
+  "TOPIC_SELECTION_USER_DISMISS",
+  "TOPIC_SELECTION_USER_OPEN",
+  "TOPIC_SELECTION_USER_SAVE",
+  "TOP_SITES_ADD",
+  "TOP_SITES_CANCEL_EDIT",
+  "TOP_SITES_CLOSE_SEARCH_SHORTCUTS_MODAL",
+  "TOP_SITES_EDIT",
+  "TOP_SITES_INSERT",
+  "TOP_SITES_OPEN_SEARCH_SHORTCUTS_MODAL",
+  "TOP_SITES_ORGANIC_IMPRESSION_STATS",
+  "TOP_SITES_PIN",
+  "TOP_SITES_PREFS_UPDATED",
+  "TOP_SITES_SPONSORED_IMPRESSION_STATS",
+  "TOP_SITES_UNPIN",
+  "TOP_SITES_UPDATED",
+  "TOTAL_BOOKMARKS_REQUEST",
+  "TOTAL_BOOKMARKS_RESPONSE",
+  "UNBLOCK_SECTION",
+  "UNFOLLOW_SECTION",
+  "UNINIT",
+  "UPDATE_PINNED_SEARCH_SHORTCUTS",
+  "UPDATE_SEARCH_SHORTCUTS",
+  "WALLPAPERS_CATEGORY_SET",
+  "WALLPAPERS_CUSTOM_SET",
+  "WALLPAPERS_FEATURE_HIGHLIGHT_COUNTER_INCREMENT",
+  "WALLPAPERS_FEATURE_HIGHLIGHT_CTA_CLICKED",
+  "WALLPAPERS_FEATURE_HIGHLIGHT_DISMISSED",
+  "WALLPAPERS_FEATURE_HIGHLIGHT_SEEN",
+  "WALLPAPERS_SET",
+  "WALLPAPER_CATEGORY_CLICK",
+  "WALLPAPER_CLICK",
+  "WALLPAPER_REMOVE_UPLOAD",
+  "WALLPAPER_UPLOAD",
+  "WEATHER_DETECT_LOCATION",
+  "WEATHER_IMPRESSION",
+  "WEATHER_LOAD_ERROR",
+  "WEATHER_LOCATION_DATA_UPDATE",
+  "WEATHER_LOCATION_SEARCH_UPDATE",
+  "WEATHER_LOCATION_SUGGESTIONS_UPDATE",
+  "WEATHER_OPEN_PROVIDER_URL",
+  "WEATHER_OPT_IN_PROMPT_SELECTION",
+  "WEATHER_QUERY_UPDATE",
+  "WEATHER_SEARCH_ACTIVE",
+  "WEATHER_UPDATE",
+  "WEATHER_USER_OPT_IN_LOCATION",
+  "WEBEXT_CLICK",
+  "WEBEXT_DISMISS",
+  "WIDGETS_LISTS_CHANGE_SELECTED",
+  "WIDGETS_LISTS_SET",
+  "WIDGETS_LISTS_SET_SELECTED",
+  "WIDGETS_LISTS_UPDATE",
+  "WIDGETS_LISTS_USER_EVENT",
+  "WIDGETS_LISTS_USER_IMPRESSION",
+  "WIDGETS_TIMER_END",
+  "WIDGETS_TIMER_PAUSE",
+  "WIDGETS_TIMER_PLAY",
+  "WIDGETS_TIMER_RESET",
+  "WIDGETS_TIMER_SET",
+  "WIDGETS_TIMER_SET_DURATION",
+  "WIDGETS_TIMER_SET_TYPE",
+  "WIDGETS_TIMER_USER_EVENT",
+  "WIDGETS_TIMER_USER_IMPRESSION",
+]) {
+  actionTypes[type] = type;
+}
+
+// Helper function for creating routed actions between content and main
+// Not intended to be used by consumers
+function _RouteMessage(action, options) {
+  const meta = action.meta ? { ...action.meta } : {};
+  if (!options || !options.from || !options.to) {
+    throw new Error(
+      "Routed Messages must have options as the second parameter, and must at least include a .from and .to property."
+    );
+  }
+  // For each of these fields, if they are passed as an option,
+  // add them to the action. If they are not defined, remove them.
+  ["from", "to", "toTarget", "fromTarget", "skipMain", "skipLocal"].forEach(
+    o => {
+      if (typeof options[o] !== "undefined") {
+        meta[o] = options[o];
+      } else if (meta[o]) {
+        delete meta[o];
+      }
+    }
+  );
+  return { ...action, meta };
+}
+
+/**
+ * AlsoToMain - Creates a message that will be dispatched locally and also sent to the Main process.
+ *
+ * @param  {object} action Any redux action (required)
+ * @param  {object} options
+ * @param  {bool}   skipLocal Used by OnlyToMain to skip the main reducer
+ * @param  {string} fromTarget The id of the content port from which the action originated. (optional)
+ * @return {object} An action with added .meta properties
+ */
+function AlsoToMain(action, fromTarget, skipLocal) {
+  return _RouteMessage(action, {
+    from: CONTENT_MESSAGE_TYPE,
+    to: MAIN_MESSAGE_TYPE,
+    fromTarget,
+    skipLocal,
+  });
+}
+
+/**
+ * OnlyToMain - Creates a message that will be sent to the Main process and skip the local reducer.
+ *
+ * @param  {object} action Any redux action (required)
+ * @param  {object} options
+ * @param  {string} fromTarget The id of the content port from which the action originated. (optional)
+ * @return {object} An action with added .meta properties
+ */
+function OnlyToMain(action, fromTarget) {
+  return AlsoToMain(action, fromTarget, true);
+}
+
+/**
+ * BroadcastToContent - Creates a message that will be dispatched to main and sent to ALL content processes.
+ *
+ * @param  {object} action Any redux action (required)
+ * @param  {object} options (optional)
+ * @return {object} An action with added .meta properties
+ */
+function BroadcastToContent(action, options) {
+  return _RouteMessage(action, {
+    from: MAIN_MESSAGE_TYPE,
+    to: CONTENT_MESSAGE_TYPE,
+    ...options,
+  });
+}
+
+/**
+ * AlsoToOneContent - Creates a message that will be will be dispatched to the main store
+ *                    and also sent to a particular Content process.
+ *
+ * @param  {object} action Any redux action (required)
+ * @param  {string} target The id of a content port
+ * @param  {bool} skipMain Used by OnlyToOneContent to skip the main process
+ * @return {object} An action with added .meta properties
+ */
+function AlsoToOneContent(action, target, skipMain) {
+  if (!target) {
+    throw new Error(
+      "You must provide a target ID as the second parameter of AlsoToOneContent. If you want to send to all content processes, use BroadcastToContent"
+    );
+  }
+  return _RouteMessage(action, {
+    from: MAIN_MESSAGE_TYPE,
+    to: CONTENT_MESSAGE_TYPE,
+    toTarget: target,
+    skipMain,
+  });
+}
+
+/**
+ * OnlyToOneContent - Creates a message that will be sent to a particular Content process
+ *                    and skip the main reducer.
+ *
+ * @param  {object} action Any redux action (required)
+ * @param  {string} target The id of a content port
+ * @return {object} An action with added .meta properties
+ */
+function OnlyToOneContent(action, target) {
+  return AlsoToOneContent(action, target, true);
+}
+
+/**
+ * AlsoToPreloaded - Creates a message that dispatched to the main reducer and also sent to the preloaded tab.
+ *
+ * @param  {object} action Any redux action (required)
+ * @return {object} An action with added .meta properties
+ */
+function AlsoToPreloaded(action) {
+  return _RouteMessage(action, {
+    from: MAIN_MESSAGE_TYPE,
+    to: PRELOAD_MESSAGE_TYPE,
+  });
+}
+
+/**
+ * UserEvent - A telemetry ping indicating a user action. This should only
+ *                   be sent from the UI during a user session.
+ *
+ * @param  {object} data Fields to include in the ping (source, etc.)
+ * @return {object} An AlsoToMain action
+ */
+function UserEvent(data) {
+  return AlsoToMain({
+    type: actionTypes.TELEMETRY_USER_EVENT,
+    data,
+  });
+}
+
+/**
+ * DiscoveryStreamUserEvent - A telemetry ping indicating a user action from Discovery Stream. This should only
+ *                     be sent from the UI during a user session.
+ *
+ * @param  {object} data Fields to include in the ping (source, etc.)
+ * @return {object} An AlsoToMain action
+ */
+function DiscoveryStreamUserEvent(data) {
+  return AlsoToMain({
+    type: actionTypes.DISCOVERY_STREAM_USER_EVENT,
+    data,
+  });
+}
+
+/**
+ * ImpressionStats - A telemetry ping indicating an impression stats.
+ *
+ * @param  {object} data Fields to include in the ping
+ * @param  {int} importContext (For testing) Override the import context for testing.
+ * #return {object} An action. For UI code, a AlsoToMain action.
+ */
+function ImpressionStats(data, importContext = globalImportContext) {
+  const action = {
+    type: actionTypes.TELEMETRY_IMPRESSION_STATS,
+    data,
+  };
+  return importContext === UI_CODE ? AlsoToMain(action) : action;
+}
+
+/**
+ * DiscoveryStreamImpressionStats - A telemetry ping indicating an impression stats in Discovery Stream.
+ *
+ * @param  {object} data Fields to include in the ping
+ * @param  {int} importContext (For testing) Override the import context for testing.
+ * #return {object} An action. For UI code, a AlsoToMain action.
+ */
+function DiscoveryStreamImpressionStats(
+  data,
+  importContext = globalImportContext
+) {
+  const action = {
+    type: actionTypes.DISCOVERY_STREAM_IMPRESSION_STATS,
+    data,
+  };
+  return importContext === UI_CODE ? AlsoToMain(action) : action;
+}
+
+/**
+ * DiscoveryStreamLoadedContent - A telemetry ping indicating a content gets loaded in Discovery Stream.
+ *
+ * @param  {object} data Fields to include in the ping
+ * @param  {int} importContext (For testing) Override the import context for testing.
+ * #return {object} An action. For UI code, a AlsoToMain action.
+ */
+function DiscoveryStreamLoadedContent(
+  data,
+  importContext = globalImportContext
+) {
+  const action = {
+    type: actionTypes.DISCOVERY_STREAM_LOADED_CONTENT,
+    data,
+  };
+  return importContext === UI_CODE ? AlsoToMain(action) : action;
+}
+
+function SetPref(prefName, value, importContext = globalImportContext) {
+  const action = {
+    type: actionTypes.SET_PREF,
+    data: { name: prefName, value },
+  };
+  return importContext === UI_CODE ? AlsoToMain(action) : action;
+}
+
+function WebExtEvent(type, data, importContext = globalImportContext) {
+  if (!data || !data.source) {
+    throw new Error(
+      'WebExtEvent actions should include a property "source", the id of the webextension that should receive the event.'
+    );
+  }
+  const action = { type, data };
+  return importContext === UI_CODE ? AlsoToMain(action) : action;
+}
+
+const actionCreators = {
+  BroadcastToContent,
+  UserEvent,
+  DiscoveryStreamUserEvent,
+  ImpressionStats,
+  AlsoToOneContent,
+  OnlyToOneContent,
+  AlsoToMain,
+  OnlyToMain,
+  AlsoToPreloaded,
+  SetPref,
+  WebExtEvent,
+  DiscoveryStreamImpressionStats,
+  DiscoveryStreamLoadedContent,
+};
+
+// These are helpers to test for certain kinds of actions
+const actionUtils = {
+  isSendToMain(action) {
+    if (!action.meta) {
+      return false;
+    }
+    return (
+      action.meta.to === MAIN_MESSAGE_TYPE &&
+      action.meta.from === CONTENT_MESSAGE_TYPE
+    );
+  },
+  isBroadcastToContent(action) {
+    if (!action.meta) {
+      return false;
+    }
+    if (action.meta.to === CONTENT_MESSAGE_TYPE && !action.meta.toTarget) {
+      return true;
+    }
+    return false;
+  },
+  isSendToOneContent(action) {
+    if (!action.meta) {
+      return false;
+    }
+    if (action.meta.to === CONTENT_MESSAGE_TYPE && action.meta.toTarget) {
+      return true;
+    }
+    return false;
+  },
+  isSendToPreloaded(action) {
+    if (!action.meta) {
+      return false;
+    }
+    return (
+      action.meta.to === PRELOAD_MESSAGE_TYPE &&
+      action.meta.from === MAIN_MESSAGE_TYPE
+    );
+  },
+  isFromMain(action) {
+    if (!action.meta) {
+      return false;
+    }
+    return (
+      action.meta.from === MAIN_MESSAGE_TYPE &&
+      action.meta.to === CONTENT_MESSAGE_TYPE
+    );
+  },
+  getPortIdOfSender(action) {
+    return (action.meta && action.meta.fromTarget) || null;
+  },
+  _RouteMessage,
+};
+
+;// CONCATENATED MODULE: external "ReactRedux"
+const external_ReactRedux_namespaceObject = ReactRedux;
+;// CONCATENATED MODULE: external "React"
+const external_React_namespaceObject = React;
+var external_React_default = /*#__PURE__*/__webpack_require__.n(external_React_namespaceObject);
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamAdmin/DiscoveryStreamAdmin.jsx
+function _extends() { return _extends = Object.assign ? Object.assign.bind() : function (n) { for (var e = 1; e < arguments.length; e++) { var t = arguments[e]; for (var r in t) ({}).hasOwnProperty.call(t, r) && (n[r] = t[r]); } return n; }, _extends.apply(null, arguments); }
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+// Pref Constants
+const PREF_AD_SIZE_MEDIUM_RECTANGLE = "newtabAdSize.mediumRectangle";
+const PREF_AD_SIZE_BILLBOARD = "newtabAdSize.billboard";
+const PREF_AD_SIZE_LEADERBOARD = "newtabAdSize.leaderboard";
+const PREF_SECTIONS_ENABLED = "discoverystream.sections.enabled";
+const PREF_SPOC_PLACEMENTS = "discoverystream.placements.spocs";
+const PREF_SPOC_COUNTS = "discoverystream.placements.spocs.counts";
+const PREF_CONTEXTUAL_ADS_ENABLED = "discoverystream.sections.contextualAds.enabled";
+const PREF_CONTEXTUAL_BANNER_PLACEMENTS = "discoverystream.placements.contextualBanners";
+const PREF_CONTEXTUAL_BANNER_COUNTS = "discoverystream.placements.contextualBanners.counts";
+const Row = props => /*#__PURE__*/external_React_default().createElement("tr", _extends({
+  className: "message-item"
+}, props), props.children);
+function relativeTime(timestamp) {
+  if (!timestamp) {
+    return "";
+  }
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  const minutes = Math.floor((Date.now() - timestamp) / 60000);
+  if (seconds < 2) {
+    return "just now";
+  } else if (seconds < 60) {
+    return `${seconds} seconds ago`;
+  } else if (minutes === 1) {
+    return "1 minute ago";
+  } else if (minutes < 600) {
+    return `${minutes} minutes ago`;
+  }
+  return new Date(timestamp).toLocaleString();
+}
+class ToggleStoryButton extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.handleClick = this.handleClick.bind(this);
+  }
+  handleClick() {
+    this.props.onClick(this.props.story);
+  }
+  render() {
+    return /*#__PURE__*/external_React_default().createElement("button", {
+      onClick: this.handleClick
+    }, "collapse/open");
+  }
+}
+class TogglePrefCheckbox extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.onChange = this.onChange.bind(this);
+  }
+  onChange(event) {
+    this.props.onChange(this.props.pref, event.target.checked);
+  }
+  render() {
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("input", {
+      type: "checkbox",
+      checked: this.props.checked,
+      onChange: this.onChange,
+      disabled: this.props.disabled
+    }), " ", this.props.pref, " ");
+  }
+}
+class Personalization extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.togglePersonalization = this.togglePersonalization.bind(this);
+  }
+  togglePersonalization() {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_PERSONALIZATION_TOGGLE
+    }));
+  }
+  render() {
+    const {
+      lastUpdated,
+      initialized
+    } = this.props.state.Personalization;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      colSpan: "2"
+    }, /*#__PURE__*/external_React_default().createElement(TogglePrefCheckbox, {
+      checked: this.props.personalized,
+      pref: "personalized",
+      onChange: this.togglePersonalization
+    }))), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "Personalization Last Updated"), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(lastUpdated) || "(no data)")), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "Personalization Initialized"), /*#__PURE__*/external_React_default().createElement("td", null, initialized ? "true" : "false")))));
+  }
+}
+class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.restorePrefDefaults = this.restorePrefDefaults.bind(this);
+    this.setConfigValue = this.setConfigValue.bind(this);
+    this.expireCache = this.expireCache.bind(this);
+    this.refreshCache = this.refreshCache.bind(this);
+    this.showPlaceholder = this.showPlaceholder.bind(this);
+    this.idleDaily = this.idleDaily.bind(this);
+    this.systemTick = this.systemTick.bind(this);
+    this.syncRemoteSettings = this.syncRemoteSettings.bind(this);
+    this.onStoryToggle = this.onStoryToggle.bind(this);
+    this.handleWeatherSubmit = this.handleWeatherSubmit.bind(this);
+    this.handleWeatherUpdate = this.handleWeatherUpdate.bind(this);
+    this.resetBlocks = this.resetBlocks.bind(this);
+    this.refreshInferredPersonalization = this.refreshInferredPersonalization.bind(this);
+    this.refreshTopicSelectionCache = this.refreshTopicSelectionCache.bind(this);
+    this.handleSectionsToggle = this.handleSectionsToggle.bind(this);
+    this.toggleIABBanners = this.toggleIABBanners.bind(this);
+    this.sendConversionEvent = this.sendConversionEvent.bind(this);
+    this.state = {
+      toggledStories: {},
+      weatherQuery: ""
+    };
+  }
+  setConfigValue(configName, configValue) {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_CONFIG_SET_VALUE,
+      data: {
+        name: configName,
+        value: configValue
+      }
+    }));
+  }
+  restorePrefDefaults() {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_CONFIG_RESET_DEFAULTS
+    }));
+  }
+  refreshCache() {
+    const {
+      config
+    } = this.props.state.DiscoveryStream;
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_CONFIG_CHANGE,
+      data: config
+    }));
+  }
+  refreshInferredPersonalization() {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.INFERRED_PERSONALIZATION_REFRESH
+    }));
+  }
+  refreshTopicSelectionCache() {
+    this.props.dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.displayCount", 0));
+    this.props.dispatch(actionCreators.SetPref("discoverystream.topicSelection.onboarding.maybeDisplay", true));
+  }
+  dispatchSimpleAction(type) {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type
+    }));
+  }
+  resetBlocks() {
+    this.props.dispatch(actionCreators.OnlyToMain({
+      type: actionTypes.DISCOVERY_STREAM_DEV_BLOCKS_RESET
+    }));
+  }
+  systemTick() {
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_SYSTEM_TICK);
+  }
+  expireCache() {
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_EXPIRE_CACHE);
+  }
+  showPlaceholder() {
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_SHOW_PLACEHOLDER);
+  }
+  idleDaily() {
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_IDLE_DAILY);
+  }
+  syncRemoteSettings() {
+    this.dispatchSimpleAction(actionTypes.DISCOVERY_STREAM_DEV_SYNC_RS);
+  }
+  handleWeatherUpdate(e) {
+    this.setState({
+      weatherQuery: e.target.value || ""
+    });
+  }
+  handleWeatherSubmit(e) {
+    e.preventDefault();
+    const {
+      weatherQuery
+    } = this.state;
+    this.props.dispatch(actionCreators.SetPref("weather.query", weatherQuery));
+  }
+  toggleIABBanners(e) {
+    const {
+      pressed,
+      id
+    } = e.target;
+
+    // Set the active pref to true/false
+    switch (id) {
+      case "newtab_billboard":
+        // Update boolean pref for billboard ad size
+        this.props.dispatch(actionCreators.SetPref(PREF_AD_SIZE_BILLBOARD, pressed));
+        break;
+      case "newtab_leaderboard":
+        // Update boolean pref for billboard ad size
+        this.props.dispatch(actionCreators.SetPref(PREF_AD_SIZE_LEADERBOARD, pressed));
+        break;
+      case "newtab_rectangle":
+        // Update boolean pref for mediumRectangle (MREC) ad size
+        this.props.dispatch(actionCreators.SetPref(PREF_AD_SIZE_MEDIUM_RECTANGLE, pressed));
+        break;
+    }
+
+    // Note: The counts array is passively updated whenever the placements array is updated.
+    // The default pref values for each are:
+    // PREF_SPOC_PLACEMENTS: "newtab_spocs"
+    // PREF_SPOC_COUNTS: "6"
+    const generateSpocPrefValues = () => {
+      const placements = this.props.otherPrefs[PREF_SPOC_PLACEMENTS]?.split(",").map(item => item.trim()).filter(item => item) || [];
+      const counts = this.props.otherPrefs[PREF_SPOC_COUNTS]?.split(",").map(item => item.trim()).filter(item => item) || [];
+
+      // Confirm that the IAB type will have a count value of "1"
+      const supportIABAdTypes = ["newtab_leaderboard", "newtab_rectangle", "newtab_billboard"];
+      let countValue;
+      if (supportIABAdTypes.includes(id)) {
+        countValue = "1"; // Default count value for all IAB ad types
+      } else {
+        throw new Error("IAB ad type not supported");
+      }
+      if (pressed) {
+        // If pressed is true, add the id to the placements array
+        if (!placements.includes(id)) {
+          placements.push(id);
+          counts.push(countValue);
+        }
+      } else {
+        // If pressed is false, remove the id from the placements array
+        const index = placements.indexOf(id);
+        if (index !== -1) {
+          placements.splice(index, 1);
+          counts.splice(index, 1);
+        }
+      }
+      return {
+        placements: placements.join(", "),
+        counts: counts.join(", ")
+      };
+    };
+    const {
+      placements,
+      counts
+    } = generateSpocPrefValues();
+
+    // Update prefs with new values
+    this.props.dispatch(actionCreators.SetPref(PREF_SPOC_PLACEMENTS, placements));
+    this.props.dispatch(actionCreators.SetPref(PREF_SPOC_COUNTS, counts));
+
+    // If contextual ads, sections, and one of the banners are enabled
+    // update the contextualBanner prefs to include the banner value and count
+    // Else, clear the prefs
+    if (PREF_CONTEXTUAL_ADS_ENABLED && PREF_SECTIONS_ENABLED) {
+      if (PREF_AD_SIZE_BILLBOARD && placements.includes("newtab_billboard")) {
+        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_PLACEMENTS, "newtab_billboard"));
+        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_COUNTS, "1"));
+      } else if (PREF_AD_SIZE_LEADERBOARD && placements.includes("newtab_leaderboard")) {
+        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_PLACEMENTS, "newtab_leaderboard"));
+        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_COUNTS, "1"));
+      } else {
+        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_PLACEMENTS, ""));
+        this.props.dispatch(actionCreators.SetPref(PREF_CONTEXTUAL_BANNER_COUNTS, ""));
+      }
+    }
+  }
+  handleSectionsToggle(e) {
+    const {
+      pressed
+    } = e.target;
+    this.props.dispatch(actionCreators.SetPref(PREF_SECTIONS_ENABLED, pressed));
+    this.props.dispatch(actionCreators.SetPref("discoverystream.sections.cards.enabled", pressed));
+    this.props.dispatch(actionCreators.SetPref("discoverystream.sections.cards.thumbsUpDown.enabled", pressed));
+  }
+  sendConversionEvent() {
+    const detail = {
+      partnerId: "demo-partner",
+      lookbackDays: 7,
+      impressionType: "default"
+    };
+    const event = new CustomEvent("FirefoxConversionNotification", {
+      detail,
+      bubbles: true,
+      composed: true
+    });
+    window?.dispatchEvent(event);
+  }
+  renderComponent(width, component) {
+    return /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "Type"), /*#__PURE__*/external_React_default().createElement("td", null, component.type)), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "Width"), /*#__PURE__*/external_React_default().createElement("td", null, width)), component.feed && this.renderFeed(component.feed)));
+  }
+  renderWeatherData() {
+    const {
+      suggestions
+    } = this.props.state.Weather;
+    let weatherTable;
+    if (suggestions) {
+      weatherTable = /*#__PURE__*/external_React_default().createElement("div", {
+        className: "weather-section"
+      }, /*#__PURE__*/external_React_default().createElement("form", {
+        onSubmit: this.handleWeatherSubmit
+      }, /*#__PURE__*/external_React_default().createElement("label", {
+        htmlFor: "weather-query"
+      }, "Weather query"), /*#__PURE__*/external_React_default().createElement("input", {
+        type: "text",
+        min: "3",
+        max: "10",
+        id: "weather-query",
+        onChange: this.handleWeatherUpdate,
+        value: this.weatherQuery
+      }), /*#__PURE__*/external_React_default().createElement("button", {
+        type: "submit"
+      }, "Submit")), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, suggestions.map(suggestion => /*#__PURE__*/external_React_default().createElement("tr", {
+        className: "message-item",
+        key: suggestion.city_name
+      }, /*#__PURE__*/external_React_default().createElement("td", {
+        className: "message-id"
+      }, /*#__PURE__*/external_React_default().createElement("span", null, suggestion.city_name, " ", /*#__PURE__*/external_React_default().createElement("br", null))), /*#__PURE__*/external_React_default().createElement("td", {
+        className: "message-summary"
+      }, /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(suggestion, null, 2))))))));
+    }
+    return weatherTable;
+  }
+  renderPersonalizationData() {
+    const {
+      inferredInterests,
+      coarseInferredInterests,
+      coarsePrivateInferredInterests
+    } = this.props.state.InferredPersonalization;
+    return /*#__PURE__*/external_React_default().createElement("div", null, " ", "Inferred Interests:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(inferredInterests, null, 2)), " Coarse Inferred Interests:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(coarseInferredInterests, null, 2)), " Coarse Inferred Interests With Differential Privacy:", /*#__PURE__*/external_React_default().createElement("pre", null, JSON.stringify(coarsePrivateInferredInterests, null, 2)));
+  }
+  renderFeedData(url) {
+    const {
+      feeds
+    } = this.props.state.DiscoveryStream;
+    const feed = feeds.data[url].data;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Feed url: ", url), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, feed.recommendations?.map(story => this.renderStoryData(story)))));
+  }
+  renderFeedsData() {
+    const {
+      feeds
+    } = this.props.state.DiscoveryStream;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, Object.keys(feeds.data).map(url => this.renderFeedData(url)));
+  }
+  renderImpressionsData() {
+    const {
+      impressions
+    } = this.props.state.DiscoveryStream;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Feed Impressions"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, Object.keys(impressions.feed).map(key => {
+      return /*#__PURE__*/external_React_default().createElement(Row, {
+        key: key
+      }, /*#__PURE__*/external_React_default().createElement("td", {
+        className: "min"
+      }, key), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(impressions.feed[key]) || "(no data)"));
+    }))));
+  }
+  renderBlocksData() {
+    const {
+      blocks
+    } = this.props.state.DiscoveryStream;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("h4", null, "Blocks"), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.resetBlocks
+    }, "Reset Blocks"), " ", /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, Object.keys(blocks).map(key => {
+      return /*#__PURE__*/external_React_default().createElement(Row, {
+        key: key
+      }, /*#__PURE__*/external_React_default().createElement("td", {
+        className: "min"
+      }, key));
+    }))));
+  }
+  renderSpocs() {
+    const {
+      spocs
+    } = this.props.state.DiscoveryStream;
+    const unifiedAdsSpocsEnabled = this.props.otherPrefs["unifiedAds.spocs.enabled"];
+
+    // Determine which mechanism is querying the UAPI ads server
+    const PREF_UNIFIED_ADS_ADSFEED_ENABLED = "unifiedAds.adsFeed.enabled";
+    const adsFeedEnabled = this.props.otherPrefs[PREF_UNIFIED_ADS_ADSFEED_ENABLED];
+    const unifiedAdsEndpoint = this.props.otherPrefs["unifiedAds.endpoint"];
+    let spocsData = [];
+    if (spocs.data && spocs.data.newtab_spocs && spocs.data.newtab_spocs.items) {
+      spocsData = spocs.data.newtab_spocs.items || [];
+    }
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "adsfeed enabled"), /*#__PURE__*/external_React_default().createElement("td", null, adsFeedEnabled ? "true" : "false")), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "spocs_endpoint"), /*#__PURE__*/external_React_default().createElement("td", null, unifiedAdsSpocsEnabled ? unifiedAdsEndpoint : spocs.spocs_endpoint)), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "Data last fetched"), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(spocs.lastUpdated))))), /*#__PURE__*/external_React_default().createElement("h4", null, "Spoc data"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, spocsData.map(spoc => this.renderStoryData(spoc)))), /*#__PURE__*/external_React_default().createElement("h4", null, "Spoc frequency caps"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, spocs.frequency_caps.map(spoc => this.renderStoryData(spoc)))));
+  }
+  onStoryToggle(story) {
+    const {
+      toggledStories
+    } = this.state;
+    this.setState({
+      toggledStories: {
+        ...toggledStories,
+        [story.id]: !toggledStories[story.id]
+      }
+    });
+  }
+  renderStoryData(story) {
+    let storyData = "";
+    if (this.state.toggledStories[story.id]) {
+      storyData = JSON.stringify(story, null, 2);
+    }
+    return /*#__PURE__*/external_React_default().createElement("tr", {
+      className: "message-item",
+      key: story.id
+    }, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "message-id"
+    }, /*#__PURE__*/external_React_default().createElement("span", null, story.id, " ", /*#__PURE__*/external_React_default().createElement("br", null)), /*#__PURE__*/external_React_default().createElement(ToggleStoryButton, {
+      story: story,
+      onClick: this.onStoryToggle
+    })), /*#__PURE__*/external_React_default().createElement("td", {
+      className: "message-summary"
+    }, /*#__PURE__*/external_React_default().createElement("pre", null, storyData)));
+  }
+  renderFeed(feed) {
+    const {
+      feeds
+    } = this.props.state.DiscoveryStream;
+    if (!feed.url) {
+      return null;
+    }
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "Feed url"), /*#__PURE__*/external_React_default().createElement("td", null, feed.url)), /*#__PURE__*/external_React_default().createElement(Row, null, /*#__PURE__*/external_React_default().createElement("td", {
+      className: "min"
+    }, "Data last fetched"), /*#__PURE__*/external_React_default().createElement("td", null, relativeTime(feeds.data[feed.url] ? feeds.data[feed.url].lastUpdated : null) || "(no data)")));
+  }
+  render() {
+    const prefToggles = "enabled collapsible".split(" ");
+    const {
+      config,
+      layout
+    } = this.props.state.DiscoveryStream;
+    const personalized = this.props.otherPrefs["discoverystream.personalization.enabled"];
+    const sectionsEnabled = this.props.otherPrefs[PREF_SECTIONS_ENABLED];
+
+    // Prefs for IAB Banners
+    const mediumRectangleEnabled = this.props.otherPrefs[PREF_AD_SIZE_MEDIUM_RECTANGLE];
+    const billboardsEnabled = this.props.otherPrefs[PREF_AD_SIZE_BILLBOARD];
+    const leaderboardEnabled = this.props.otherPrefs[PREF_AD_SIZE_LEADERBOARD];
+    const spocPlacements = this.props.otherPrefs[PREF_SPOC_PLACEMENTS];
+    const mediumRectangleEnabledPressed = mediumRectangleEnabled && spocPlacements.includes("newtab_rectangle");
+    const billboardPressed = billboardsEnabled && spocPlacements.includes("newtab_billboard");
+    const leaderboardPressed = leaderboardEnabled && spocPlacements.includes("newtab_leaderboard");
+    return /*#__PURE__*/external_React_default().createElement("div", null, /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.restorePrefDefaults
+    }, "Restore Pref Defaults"), " ", /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.refreshCache
+    }, "Refresh Cache"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.expireCache
+    }, "Expire Cache"), " ", /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.systemTick
+    }, "Trigger System Tick"), " ", /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.idleDaily
+    }, "Trigger Idle Daily"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.refreshInferredPersonalization
+    }, "Refresh Inferred Personalization"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.syncRemoteSettings
+    }, "Sync Remote Settings"), " ", /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.refreshTopicSelectionCache
+    }, "Refresh Topic selection count"), /*#__PURE__*/external_React_default().createElement("br", null), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.showPlaceholder
+    }, "Show Placeholder Cards"), " ", /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "sections-toggle",
+      pressed: sectionsEnabled || null,
+      onToggle: this.handleSectionsToggle,
+      label: "Toggle DS Sections"
+    })), /*#__PURE__*/external_React_default().createElement("details", {
+      className: "details-section"
+    }, /*#__PURE__*/external_React_default().createElement("summary", null, "IAB Banner Ad Sizes"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "newtab_leaderboard",
+      pressed: leaderboardPressed || null,
+      onToggle: this.toggleIABBanners,
+      label: "Enable IAB Leaderboard"
+    })), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "newtab_billboard",
+      pressed: billboardPressed || null,
+      onToggle: this.toggleIABBanners,
+      label: "Enable IAB Billboard"
+    })), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "toggle-wrapper"
+    }, /*#__PURE__*/external_React_default().createElement("moz-toggle", {
+      id: "newtab_rectangle",
+      pressed: mediumRectangleEnabledPressed || null,
+      onToggle: this.toggleIABBanners,
+      label: "Enable IAB Medium Rectangle (MREC)"
+    }))), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "button",
+      onClick: this.sendConversionEvent
+    }, "Send conversion event"), /*#__PURE__*/external_React_default().createElement("table", null, /*#__PURE__*/external_React_default().createElement("tbody", null, prefToggles.map(pref => /*#__PURE__*/external_React_default().createElement(Row, {
+      key: pref
+    }, /*#__PURE__*/external_React_default().createElement("td", null, /*#__PURE__*/external_React_default().createElement(TogglePrefCheckbox, {
+      checked: config[pref],
+      pref: pref,
+      onChange: this.setConfigValue
+    })))))), /*#__PURE__*/external_React_default().createElement("h3", null, "Layout"), layout.map((row, rowIndex) => /*#__PURE__*/external_React_default().createElement("div", {
+      key: `row-${rowIndex}`
+    }, row.components.map((component, componentIndex) => /*#__PURE__*/external_React_default().createElement("div", {
+      key: `component-${componentIndex}`,
+      className: "ds-component"
+    }, this.renderComponent(row.width, component))))), /*#__PURE__*/external_React_default().createElement("h3", null, "Personalization"), /*#__PURE__*/external_React_default().createElement(Personalization, {
+      personalized: personalized,
+      dispatch: this.props.dispatch,
+      state: {
+        Personalization: this.props.state.Personalization
+      }
+    }), /*#__PURE__*/external_React_default().createElement("h3", null, "Spocs"), this.renderSpocs(), /*#__PURE__*/external_React_default().createElement("h3", null, "Feeds Data"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "large-data-container"
+    }, this.renderFeedsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Impressions Data"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "large-data-container"
+    }, this.renderImpressionsData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Blocked Data"), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "large-data-container"
+    }, this.renderBlocksData()), /*#__PURE__*/external_React_default().createElement("h3", null, "Weather Data"), this.renderWeatherData(), /*#__PURE__*/external_React_default().createElement("h3", null, "Personalization Data"), this.renderPersonalizationData());
+  }
+}
+class DiscoveryStreamAdminInner extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.setState = this.setState.bind(this);
+  }
+  render() {
+    return /*#__PURE__*/external_React_default().createElement("div", {
+      className: `discoverystream-admin ${this.props.collapsed ? "collapsed" : "expanded"}`
+    }, /*#__PURE__*/external_React_default().createElement("main", {
+      className: "main-panel"
+    }, /*#__PURE__*/external_React_default().createElement("h1", null, "Discovery Stream Admin"), /*#__PURE__*/external_React_default().createElement("p", {
+      className: "helpLink"
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      className: "icon icon-small-spacer icon-info"
+    }), " ", /*#__PURE__*/external_React_default().createElement("span", null, "Need to access the ASRouter Admin dev tools?", " ", /*#__PURE__*/external_React_default().createElement("a", {
+      target: "blank",
+      href: "about:asrouter"
+    }, "Click here"))), /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement(DiscoveryStreamAdminUI, {
+      state: {
+        DiscoveryStream: this.props.DiscoveryStream,
+        Personalization: this.props.Personalization,
+        Weather: this.props.Weather,
+        InferredPersonalization: this.props.InferredPersonalization
+      },
+      otherPrefs: this.props.Prefs.values,
+      dispatch: this.props.dispatch
+    }))));
+  }
+}
+function CollapseToggle(props) {
+  const {
+    devtoolsCollapsed
+  } = props;
+  const label = `${devtoolsCollapsed ? "Expand" : "Collapse"} devtools`;
+  (0,external_React_namespaceObject.useEffect)(() => {
+    // Set or remove body class depending on devtoolsCollapsed state
+    if (devtoolsCollapsed) {
+      globalThis.document.body.classList.remove("no-scroll");
+    } else {
+      globalThis.document.body.classList.add("no-scroll");
+    }
+
+    // Cleanup on unmount
+    return () => {
+      globalThis.document.body.classList.remove("no-scroll");
+    };
+  }, [devtoolsCollapsed]);
+  return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("a", {
+    href: devtoolsCollapsed ? "#devtools" : "#",
+    title: label,
+    "aria-label": label,
+    className: `discoverystream-admin-toggle ${devtoolsCollapsed ? "expanded" : "collapsed"}`
+  }, /*#__PURE__*/external_React_default().createElement("span", {
+    className: "icon icon-devtools"
+  })), !devtoolsCollapsed ? /*#__PURE__*/external_React_default().createElement(DiscoveryStreamAdminInner, _extends({}, props, {
+    collapsed: devtoolsCollapsed
+  })) : null);
+}
+const _DiscoveryStreamAdmin = props => /*#__PURE__*/external_React_default().createElement(CollapseToggle, props);
+const DiscoveryStreamAdmin = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+  Sections: state.Sections,
+  DiscoveryStream: state.DiscoveryStream,
+  Personalization: state.Personalization,
+  InferredPersonalization: state.InferredPersonalization,
+  Prefs: state.Prefs,
+  Weather: state.Weather
+}))(_DiscoveryStreamAdmin);
+;// CONCATENATED MODULE: ./content-src/components/ConfirmDialog/ConfirmDialog.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+/**
+ * ConfirmDialog component.
+ * One primary action button, one cancel button.
+ *
+ * Content displayed is controlled by `data` prop the component receives.
+ * Example:
+ * data: {
+ *   // Any sort of data needed to be passed around by actions.
+ *   payload: site.url,
+ *   // Primary button AlsoToMain action.
+ *   action: "DELETE_HISTORY_URL",
+ *   // Primary button USerEvent action.
+ *   userEvent: "DELETE",
+ *   // Array of locale ids to display.
+ *   message_body: ["confirm_history_delete_p1", "confirm_history_delete_notice_p2"],
+ *   // Text for primary button.
+ *   confirm_button_string_id: "menu_action_delete"
+ * },
+ */
+class _ConfirmDialog extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this._handleCancelBtn = this._handleCancelBtn.bind(this);
+    this._handleConfirmBtn = this._handleConfirmBtn.bind(this);
+  }
+  _handleCancelBtn() {
+    this.props.dispatch({
+      type: actionTypes.DIALOG_CANCEL
+    });
+    this.props.dispatch(actionCreators.UserEvent({
+      event: actionTypes.DIALOG_CANCEL,
+      source: this.props.data.eventSource
+    }));
+  }
+  _handleConfirmBtn() {
+    this.props.data.onConfirm.forEach(this.props.dispatch);
+  }
+  _renderModalMessage() {
+    const message_body = this.props.data.body_string_id;
+    if (!message_body) {
+      return null;
+    }
+    return /*#__PURE__*/external_React_default().createElement("span", null, message_body.map(msg => /*#__PURE__*/external_React_default().createElement("p", {
+      key: msg,
+      "data-l10n-id": msg
+    })));
+  }
+  render() {
+    if (!this.props.visible) {
+      return null;
+    }
+    return /*#__PURE__*/external_React_default().createElement("div", {
+      className: "confirmation-dialog"
+    }, /*#__PURE__*/external_React_default().createElement("div", {
+      className: "modal-overlay",
+      onClick: this._handleCancelBtn,
+      role: "presentation"
+    }), /*#__PURE__*/external_React_default().createElement("div", {
+      className: "modal"
+    }, /*#__PURE__*/external_React_default().createElement("section", {
+      className: "modal-message"
+    }, this.props.data.icon && /*#__PURE__*/external_React_default().createElement("span", {
+      className: `icon icon-spacer icon-${this.props.data.icon}`
+    }), this._renderModalMessage()), /*#__PURE__*/external_React_default().createElement("section", {
+      className: "actions"
+    }, /*#__PURE__*/external_React_default().createElement("button", {
+      onClick: this._handleCancelBtn,
+      "data-l10n-id": this.props.data.cancel_button_string_id
+    }), /*#__PURE__*/external_React_default().createElement("button", {
+      className: "done",
+      onClick: this._handleConfirmBtn,
+      "data-l10n-id": this.props.data.confirm_button_string_id,
+      "data-l10n-args": JSON.stringify(this.props.data.confirm_button_string_args)
+    }))));
+  }
+}
+const ConfirmDialog = (0,external_ReactRedux_namespaceObject.connect)(state => state.Dialog)(_ConfirmDialog);
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSImage/DSImage.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+const PLACEHOLDER_IMAGE_DATA_ARRAY = [{
+  rotation: "0deg",
+  offsetx: "20px",
+  offsety: "8px",
+  scale: "45%"
+}, {
+  rotation: "54deg",
+  offsetx: "-26px",
+  offsety: "62px",
+  scale: "55%"
+}, {
+  rotation: "-30deg",
+  offsetx: "78px",
+  offsety: "30px",
+  scale: "68%"
+}, {
+  rotation: "-22deg",
+  offsetx: "0",
+  offsety: "92px",
+  scale: "60%"
+}, {
+  rotation: "-65deg",
+  offsetx: "66px",
+  offsety: "28px",
+  scale: "60%"
+}, {
+  rotation: "22deg",
+  offsetx: "-35px",
+  offsety: "62px",
+  scale: "52%"
+}, {
+  rotation: "-25deg",
+  offsetx: "86px",
+  offsety: "-15px",
+  scale: "68%"
+}];
+const PLACEHOLDER_IMAGE_COLORS_ARRAY = "#0090ED #FF4F5F #2AC3A2 #FF7139 #A172FF #FFA437 #FF2A8A".split(" ");
+function generateIndex({
+  keyCode,
+  max
+}) {
+  if (!keyCode) {
+    // Just grab a random index if we cannot generate an index from a key.
+    return Math.floor(Math.random() * max);
+  }
+  const hashStr = str => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      let charCode = str.charCodeAt(i);
+      hash += charCode;
+    }
+    return hash;
+  };
+  const hash = hashStr(keyCode);
+  return hash % max;
+}
+function PlaceholderImage({
+  urlKey,
+  titleKey
+}) {
+  const dataIndex = generateIndex({
+    keyCode: urlKey,
+    max: PLACEHOLDER_IMAGE_DATA_ARRAY.length
+  });
+  const colorIndex = generateIndex({
+    keyCode: titleKey,
+    max: PLACEHOLDER_IMAGE_COLORS_ARRAY.length
+  });
+  const {
+    rotation,
+    offsetx,
+    offsety,
+    scale
+  } = PLACEHOLDER_IMAGE_DATA_ARRAY[dataIndex];
+  const color = PLACEHOLDER_IMAGE_COLORS_ARRAY[colorIndex];
+  const style = {
+    "--placeholderBackgroundColor": color,
+    "--placeholderBackgroundRotation": rotation,
+    "--placeholderBackgroundOffsetx": offsetx,
+    "--placeholderBackgroundOffsety": offsety,
+    "--placeholderBackgroundScale": scale
+  };
+  return /*#__PURE__*/external_React_default().createElement("div", {
+    style: style,
+    className: "placeholder-image"
+  });
+}
+class DSImage extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.onOptimizedImageError = this.onOptimizedImageError.bind(this);
+    this.onNonOptimizedImageError = this.onNonOptimizedImageError.bind(this);
+    this.onLoad = this.onLoad.bind(this);
+    this.state = {
+      isLoaded: false,
+      optimizedImageFailed: false,
+      useTransition: false
+    };
+  }
+  onIdleCallback() {
+    if (!this.state.isLoaded) {
+      this.setState({
+        useTransition: true
+      });
+    }
+  }
+
+  // Wraps the image url with the Pocket proxy to both resize and crop the image.
+  reformatImageURL(url, width, height) {
+    const smart = this.props.smartCrop ? "smart/" : "";
+    // Change the image URL to request a size tailored for the parent container width
+    // Also: force JPEG, quality 60, no upscaling, no EXIF data
+    // Uses Thumbor: https://thumbor.readthedocs.io/en/latest/usage.html
+    const formattedUrl = `https://img-getpocket.cdn.mozilla.net/${width}x${height}/${smart}filters:format(jpeg):quality(60):no_upscale():strip_exif()/${encodeURIComponent(url)}`;
+    return this.secureImageURL(formattedUrl);
+  }
+
+  // Wraps the image URL with the moz-cached-ohttp:// protocol.
+  // This enables Firefox to load resources over Oblivious HTTP (OHTTP),
+  // providing privacy-preserving resource loading.
+  // Applied only when inferred personalization is enabled.
+  // See: https://firefox-source-docs.mozilla.org/browser/components/mozcachedohttp/docs/index.html
+  secureImageURL(url) {
+    if (!this.props.secureImage) {
+      return url;
+    }
+    return `moz-cached-ohttp://newtab-image/?url=${encodeURIComponent(url)}`;
+  }
+  componentDidMount() {
+    this.idleCallbackId = this.props.windowObj.requestIdleCallback(this.onIdleCallback.bind(this));
+  }
+  componentWillUnmount() {
+    if (this.idleCallbackId) {
+      this.props.windowObj.cancelIdleCallback(this.idleCallbackId);
+    }
+  }
+  render() {
+    let classNames = `ds-image
+      ${this.props.extraClassNames ? ` ${this.props.extraClassNames}` : ``}
+      ${this.state && this.state.useTransition ? ` use-transition` : ``}
+      ${this.state && this.state.isLoaded ? ` loaded` : ``}
+    `;
+    let img;
+    if (this.state) {
+      if (this.props.optimize && this.props.rawSource && !this.state.optimizedImageFailed) {
+        const baseSource = this.props.rawSource;
+
+        // We don't care about securing this.props.source, as this exclusivly
+        // comes from an older service that is not personalized.
+        // This can also return a non secure url if this functionality is not enabled.
+        const securedSource = this.secureImageURL(baseSource);
+        let sizeRules = [];
+        let srcSetRules = [];
+        for (let rule of this.props.sizes) {
+          let {
+            mediaMatcher,
+            width,
+            height
+          } = rule;
+          let sizeRule = `${mediaMatcher} ${width}px`;
+          sizeRules.push(sizeRule);
+          let srcSetRule = `${this.reformatImageURL(baseSource, width, height)} ${width}w`;
+          let srcSetRule2x = `${this.reformatImageURL(baseSource, width * 2, height * 2)} ${width * 2}w`;
+          srcSetRules.push(srcSetRule);
+          srcSetRules.push(srcSetRule2x);
+        }
+        if (this.props.sizes.length) {
+          // We have to supply a fallback in the very unlikely event that none of
+          // the media queries match. The smallest dimension was chosen arbitrarily.
+          sizeRules.push(`${this.props.sizes[this.props.sizes.length - 1].width}px`);
+        }
+        img = /*#__PURE__*/external_React_default().createElement("img", {
+          loading: "lazy",
+          alt: this.props.alt_text,
+          crossOrigin: "anonymous",
+          onLoad: this.onLoad,
+          onError: this.onOptimizedImageError,
+          sizes: sizeRules.join(","),
+          src: securedSource,
+          srcSet: srcSetRules.join(",")
+        });
+      } else if (this.props.source && !this.state.nonOptimizedImageFailed) {
+        img = /*#__PURE__*/external_React_default().createElement("img", {
+          loading: "lazy",
+          alt: this.props.alt_text,
+          crossOrigin: "anonymous",
+          onLoad: this.onLoad,
+          onError: this.onNonOptimizedImageError,
+          src: this.props.source
+        });
+      } else {
+        // We consider a failed to load img or source without an image as loaded.
+        classNames = `${classNames} loaded`;
+        // Remove the img element if we have no source. Render a placeholder instead.
+        // This only happens for recent saves without a source.
+        if (this.props.isRecentSave && !this.props.rawSource && !this.props.source) {
+          img = /*#__PURE__*/external_React_default().createElement(PlaceholderImage, {
+            urlKey: this.props.url,
+            titleKey: this.props.title
+          });
+        } else {
+          img = /*#__PURE__*/external_React_default().createElement("div", {
+            className: "broken-image"
+          });
+        }
+      }
+    }
+    return /*#__PURE__*/external_React_default().createElement("picture", {
+      className: classNames
+    }, img);
+  }
+  onOptimizedImageError() {
+    // This will trigger a re-render and the unoptimized 450px image will be used as a fallback
+    this.setState({
+      optimizedImageFailed: true
+    });
+  }
+  onNonOptimizedImageError() {
+    this.setState({
+      nonOptimizedImageFailed: true
+    });
+  }
+  onLoad() {
+    this.setState({
+      isLoaded: true
+    });
+  }
+}
+DSImage.defaultProps = {
+  source: null,
+  // The current source style from Pocket API (always 450px)
+  rawSource: null,
+  // Unadulterated image URL to filter through Thumbor
+  extraClassNames: null,
+  // Additional classnames to append to component
+  optimize: true,
+  // Measure parent container to request exact sizes
+  alt_text: null,
+  windowObj: window,
+  // Added to support unit tests
+  sizes: []
+};
+;// CONCATENATED MODULE: ./content-src/components/ContextMenu/ContextMenu.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+class ContextMenu extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.hideContext = this.hideContext.bind(this);
+    this.onShow = this.onShow.bind(this);
+    this.onClick = this.onClick.bind(this);
+  }
+  hideContext() {
+    this.props.onUpdate(false);
+  }
+  onShow() {
+    if (this.props.onShow) {
+      this.props.onShow();
+    }
+  }
+  componentDidMount() {
+    this.onShow();
+    setTimeout(() => {
+      globalThis.addEventListener("click", this.hideContext);
+    }, 0);
+  }
+  componentWillUnmount() {
+    globalThis.removeEventListener("click", this.hideContext);
+  }
+  onClick(event) {
+    // Eat all clicks on the context menu so they don't bubble up to window.
+    // This prevents the context menu from closing when clicking disabled items
+    // or the separators.
+    event.stopPropagation();
+  }
+  render() {
+    // Disabling focus on the menu span allows the first tab to focus on the first menu item instead of the wrapper.
+    return (
+      /*#__PURE__*/
+      // eslint-disable-next-line jsx-a11y/interactive-supports-focus
+      external_React_default().createElement("span", {
+        className: "context-menu"
+      }, /*#__PURE__*/external_React_default().createElement("ul", {
+        role: "menu",
+        onClick: this.onClick,
+        onKeyDown: this.onClick,
+        className: "context-menu-list"
+      }, this.props.options.map((option, i) => option.type === "separator" ? /*#__PURE__*/external_React_default().createElement("li", {
+        key: i,
+        className: "separator",
+        role: "separator"
+      }) : option.type !== "empty" && /*#__PURE__*/external_React_default().createElement(ContextMenuItem, {
+        key: i,
+        option: option,
+        hideContext: this.hideContext,
+        keyboardAccess: this.props.keyboardAccess
+      }))))
+    );
+  }
+}
+class _ContextMenuItem extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.onClick = this.onClick.bind(this);
+    this.onKeyDown = this.onKeyDown.bind(this);
+    this.onKeyUp = this.onKeyUp.bind(this);
+    this.focusFirst = this.focusFirst.bind(this);
+  }
+  onClick(event) {
+    this.props.hideContext();
+    this.props.option.onClick(event);
+  }
+
+  // Focus the first menu item if the menu was accessed via the keyboard.
+  focusFirst(button) {
+    if (this.props.keyboardAccess && button) {
+      button.focus();
+    }
+  }
+
+  // This selects the correct node based on the key pressed
+  focusSibling(target, key) {
+    const {
+      parentNode
+    } = target;
+    const closestSiblingSelector = key === "ArrowUp" ? "previousSibling" : "nextSibling";
+    if (!parentNode[closestSiblingSelector]) {
+      return;
+    }
+    if (parentNode[closestSiblingSelector].firstElementChild) {
+      parentNode[closestSiblingSelector].firstElementChild.focus();
+    } else {
+      parentNode[closestSiblingSelector][closestSiblingSelector].firstElementChild.focus();
+    }
+  }
+  onKeyDown(event) {
+    const {
+      option
+    } = this.props;
+    switch (event.key) {
+      case "Tab":
+        // tab goes down in context menu, shift + tab goes up in context menu
+        // if we're on the last item, one more tab will close the context menu
+        // similarly, if we're on the first item, one more shift + tab will close it
+        if (event.shiftKey && option.first || !event.shiftKey && option.last) {
+          this.props.hideContext();
+        }
+        break;
+      case "ArrowUp":
+      case "ArrowDown":
+        event.preventDefault();
+        this.focusSibling(event.target, event.key);
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        this.props.hideContext();
+        option.onClick();
+        break;
+      case "Escape":
+        this.props.hideContext();
+        break;
+    }
+  }
+
+  // Prevents the default behavior of spacebar
+  // scrolling the page & auto-triggering buttons.
+  onKeyUp(event) {
+    if (event.key === " ") {
+      event.preventDefault();
+    }
+  }
+  render() {
+    const {
+      option
+    } = this.props;
+    const className = [option.disabled ? "disabled" : ""].join(" ");
+    return /*#__PURE__*/external_React_default().createElement("li", {
+      role: "presentation",
+      className: "context-menu-item"
+    }, /*#__PURE__*/external_React_default().createElement("button", {
+      role: "menuitem",
+      className: className,
+      onClick: this.onClick,
+      onKeyDown: this.onKeyDown,
+      onKeyUp: this.onKeyUp,
+      ref: option.first ? this.focusFirst : null,
+      "aria-haspopup": option.id === "newtab-menu-edit-topsites" ? "dialog" : null
+    }, /*#__PURE__*/external_React_default().createElement("span", {
+      "data-l10n-id": option.string_id || option.id
+    })));
+  }
+}
+const ContextMenuItem = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+  Prefs: state.Prefs
+}))(_ContextMenuItem);
+;// CONCATENATED MODULE: ./content-src/lib/link-menu-options.mjs
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+const _OpenInPrivateWindow = site => ({
+  id: "newtab-menu-open-new-private-window",
+  icon: "new-window-private",
+  action: actionCreators.OnlyToMain({
+    type: actionTypes.OPEN_PRIVATE_WINDOW,
+    data: {
+      url: site.url,
+      referrer: site.referrer,
+      event_source: "CONTEXT_MENU",
+    },
+  }),
+  userEvent: "OPEN_PRIVATE_WINDOW",
+});
+
+/**
+ * List of functions that return items that can be included as menu options in a
+ * LinkMenu. All functions take the site as the first parameter, and optionally
+ * the index of the site.
+ */
+const LinkMenuOptions = {
+  Separator: () => ({ type: "separator" }),
+  EmptyItem: () => ({ type: "empty" }),
+  ShowPrivacyInfo: () => ({
+    id: "newtab-menu-show-privacy-info",
+    icon: "info",
+    action: {
+      type: actionTypes.SHOW_PRIVACY_INFO,
+    },
+    userEvent: "SHOW_PRIVACY_INFO",
+  }),
+  AboutSponsored: site => ({
+    id: "newtab-menu-show-privacy-info",
+    icon: "info",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.ABOUT_SPONSORED_TOP_SITES,
+      data: {
+        advertiser_name: (site.label || site.hostname).toLocaleLowerCase(),
+        position: site.sponsored_position,
+        tile_id: site.sponsored_tile_id,
+        block_key: site.block_key,
+      },
+    }),
+    userEvent: "TOPSITE_SPONSOR_INFO",
+  }),
+  RemoveBookmark: site => ({
+    id: "newtab-menu-remove-bookmark",
+    icon: "bookmark-added",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.DELETE_BOOKMARK_BY_ID,
+      data: site.bookmarkGuid,
+    }),
+    userEvent: "BOOKMARK_DELETE",
+  }),
+  AddBookmark: site => ({
+    id: "newtab-menu-bookmark",
+    icon: "bookmark-hollow",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.BOOKMARK_URL,
+      data: { url: site.url, title: site.title, type: site.type },
+    }),
+    userEvent: "BOOKMARK_ADD",
+  }),
+  OpenInNewWindow: site => ({
+    id: "newtab-menu-open-new-window",
+    icon: "new-window",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.OPEN_NEW_WINDOW,
+      data: {
+        card_type: site.card_type,
+        referrer: site.referrer,
+        typedBonus: site.typedBonus,
+        url: site.url,
+        is_sponsored: !!site.sponsored_tile_id,
+        event_source: "CONTEXT_MENU",
+        topic: site.topic,
+        firstVisibleTimestamp: site.firstVisibleTimestamp,
+        tile_id: site.tile_id,
+        recommendation_id: site.recommendation_id,
+        scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+        corpus_item_id: site.corpus_item_id,
+        received_rank: site.received_rank,
+        recommended_at: site.recommended_at,
+        format: site.format,
+        ...(site.flight_id ? { flight_id: site.flight_id } : {}),
+        is_pocket_card: site.type === "CardGrid",
+        ...(site.section
+          ? {
+              section: site.section,
+              section_position: site.section_position,
+              is_section_followed: site.is_section_followed,
+            }
+          : {}),
+      },
+    }),
+    userEvent: "OPEN_NEW_WINDOW",
+  }),
+
+  // This blocks the url for regular stories,
+  // but also sends a message to DiscoveryStream with flight_id.
+  // If DiscoveryStream sees this message for a flight_id
+  // it also blocks it on the flight_id.
+  BlockUrl: (site, index, eventSource) => {
+    return LinkMenuOptions.BlockUrls([site], index, eventSource);
+  },
+  // Same as BlockUrl, except can work on an array of sites.
+  BlockUrls: (tiles, pos, eventSource) => ({
+    id: "newtab-menu-dismiss",
+    icon: "dismiss",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.BLOCK_URL,
+      source: eventSource,
+      data: tiles.map(site => ({
+        url: site.original_url || site.open_url || site.url,
+        // pocket_id is only for pocket stories being in highlights, and then dismissed.
+        pocket_id: site.pocket_id,
+        tile_id: site.tile_id,
+        ...(site.block_key ? { block_key: site.block_key } : {}),
+        recommendation_id: site.recommendation_id,
+        scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+        corpus_item_id: site.corpus_item_id,
+        received_rank: site.received_rank,
+        recommended_at: site.recommended_at,
+        // used by PlacesFeed and TopSitesFeed for sponsored top sites blocking.
+        isSponsoredTopSite: site.sponsored_position,
+        type: site.type,
+        card_type: site.card_type,
+        ...(site.shim && site.shim.delete ? { shim: site.shim.delete } : {}),
+        ...(site.flight_id ? { flight_id: site.flight_id } : {}),
+        // If not sponsored, hostname could be anything (Cat3 Data!).
+        // So only put in advertiser_name for sponsored topsites.
+        ...(site.sponsored_position
+          ? {
+              advertiser_name: (
+                site.label || site.hostname
+              )?.toLocaleLowerCase(),
+            }
+          : {}),
+        position: pos,
+        ...(site.sponsored_tile_id ? { tile_id: site.sponsored_tile_id } : {}),
+        is_pocket_card: site.type === "CardGrid",
+        ...(site.format ? { format: site.format } : {}),
+        ...(site.section
+          ? {
+              section: site.section,
+              section_position: site.section_position,
+              is_section_followed: site.is_section_followed,
+            }
+          : {}),
+      })),
+    }),
+    impression: actionCreators.ImpressionStats({
+      source: eventSource,
+      block: 0,
+      tiles: tiles.map((site, index) => ({
+        id: site.guid,
+        pos: pos + index,
+        ...(site.shim && site.shim.delete ? { shim: site.shim.delete } : {}),
+      })),
+    }),
+    userEvent: "BLOCK",
+  }),
+
+  // This is the "Dismiss" action for leaderboard/billboard ads.
+  BlockAdUrl: (site, pos, eventSource) => ({
+    id: "newtab-menu-dismiss",
+    icon: "dismiss",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.BLOCK_URL,
+      data: [site],
+    }),
+    impression: actionCreators.ImpressionStats({
+      source: eventSource,
+      block: 0,
+      tiles: [
+        {
+          id: site.guid,
+          pos,
+          ...(site.shim && site.shim.save ? { shim: site.shim.save } : {}),
+        },
+      ],
+    }),
+    userEvent: "BLOCK",
+  }),
+
+  // This is an option for web extentions which will result in remove items from
+  // memory and notify the web extenion, rather than using the built-in block list.
+  WebExtDismiss: (site, index, eventSource) => ({
+    id: "menu_action_webext_dismiss",
+    string_id: "newtab-menu-dismiss",
+    icon: "dismiss",
+    action: actionCreators.WebExtEvent(actionTypes.WEBEXT_DISMISS, {
+      source: eventSource,
+      url: site.url,
+      action_position: index,
+    }),
+  }),
+  DeleteUrl: (site, index, eventSource, isEnabled, siteInfo) => ({
+    id: "newtab-menu-delete-history",
+    icon: "delete",
+    action: {
+      type: actionTypes.DIALOG_OPEN,
+      data: {
+        onConfirm: [
+          actionCreators.AlsoToMain({
+            type: actionTypes.DELETE_HISTORY_URL,
+            data: {
+              url: site.url,
+              pocket_id: site.pocket_id,
+              forceBlock: site.bookmarkGuid,
+            },
+          }),
+          actionCreators.UserEvent(
+            Object.assign(
+              { event: "DELETE", source: eventSource, action_position: index },
+              siteInfo
+            )
+          ),
+          // Also broadcast that this url has been deleted so that
+          // the confirmation dialog knows it needs to disappear now.
+          actionCreators.AlsoToMain({
+            type: actionTypes.DIALOG_CLOSE,
+          }),
+        ],
+        eventSource,
+        body_string_id: [
+          "newtab-confirm-delete-history-p1",
+          "newtab-confirm-delete-history-p2",
+        ],
+        confirm_button_string_id: "newtab-topsites-delete-history-button",
+        cancel_button_string_id: "newtab-topsites-cancel-button",
+        icon: "modal-delete",
+      },
+    },
+    userEvent: "DIALOG_OPEN",
+  }),
+  ShowFile: site => ({
+    id: "newtab-menu-show-file",
+    icon: "search",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SHOW_DOWNLOAD_FILE,
+      data: { url: site.url },
+    }),
+  }),
+  OpenFile: site => ({
+    id: "newtab-menu-open-file",
+    icon: "open-file",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_DOWNLOAD_FILE,
+      data: { url: site.url },
+    }),
+  }),
+  CopyDownloadLink: site => ({
+    id: "newtab-menu-copy-download-link",
+    icon: "copy",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.COPY_DOWNLOAD_LINK,
+      data: { url: site.url },
+    }),
+  }),
+  GoToDownloadPage: site => ({
+    id: "newtab-menu-go-to-download-page",
+    icon: "download",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_LINK,
+      data: { url: site.referrer },
+    }),
+    disabled: !site.referrer,
+  }),
+  RemoveDownload: site => ({
+    id: "newtab-menu-remove-download",
+    icon: "delete",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.REMOVE_DOWNLOAD_FILE,
+      data: { url: site.url },
+    }),
+  }),
+  PinTopSite: (site, index) => ({
+    id: "newtab-menu-pin",
+    icon: "pin",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.TOP_SITES_PIN,
+      data: {
+        site,
+        index,
+      },
+    }),
+    userEvent: "PIN",
+  }),
+  UnpinTopSite: site => ({
+    id: "newtab-menu-unpin",
+    icon: "unpin",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.TOP_SITES_UNPIN,
+      data: { site: { url: site.url } },
+    }),
+    userEvent: "UNPIN",
+  }),
+  EditTopSite: (site, index) => ({
+    id: "newtab-menu-edit-topsites",
+    icon: "edit",
+    action: {
+      type: actionTypes.TOP_SITES_EDIT,
+      data: { index },
+    },
+  }),
+  CheckBookmark: site =>
+    site.bookmarkGuid
+      ? LinkMenuOptions.RemoveBookmark(site)
+      : LinkMenuOptions.AddBookmark(site),
+  CheckPinTopSite: (site, index) =>
+    site.isPinned
+      ? LinkMenuOptions.UnpinTopSite(site)
+      : LinkMenuOptions.PinTopSite(site, index),
+  OpenInPrivateWindow: (site, index, eventSource, isEnabled) =>
+    isEnabled ? _OpenInPrivateWindow(site) : LinkMenuOptions.EmptyItem(),
+  ChangeWeatherLocation: () => ({
+    id: "newtab-weather-menu-change-location",
+    action: actionCreators.BroadcastToContent({
+      type: actionTypes.WEATHER_SEARCH_ACTIVE,
+      data: true,
+    }),
+  }),
+  DetectLocation: () => ({
+    id: "newtab-weather-menu-detect-my-location",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.WEATHER_USER_OPT_IN_LOCATION,
+    }),
+    userEvent: "WEATHER_DETECT_LOCATION",
+  }),
+  ChangeWeatherDisplaySimple: () => ({
+    id: "newtab-weather-menu-change-weather-display-simple",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "weather.display",
+        value: "simple",
+      },
+    }),
+  }),
+  ChangeWeatherDisplayDetailed: () => ({
+    id: "newtab-weather-menu-change-weather-display-detailed",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "weather.display",
+        value: "detailed",
+      },
+    }),
+  }),
+  ChangeTempUnitFahrenheit: () => ({
+    id: "newtab-weather-menu-change-temperature-units-fahrenheit",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "weather.temperatureUnits",
+        value: "f",
+      },
+    }),
+  }),
+  ChangeTempUnitCelsius: () => ({
+    id: "newtab-weather-menu-change-temperature-units-celsius",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "weather.temperatureUnits",
+        value: "c",
+      },
+    }),
+  }),
+  HideWeather: () => ({
+    id: "newtab-weather-menu-hide-weather",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.SET_PREF,
+      data: {
+        name: "showWeather",
+        value: false,
+      },
+    }),
+  }),
+  OpenLearnMoreURL: site => ({
+    id: "newtab-weather-menu-learn-more",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_LINK,
+      data: { url: site.url },
+    }),
+  }),
+  SectionBlock: ({
+    sectionPersonalization,
+    sectionKey,
+    sectionPosition,
+    title,
+  }) => ({
+    id: "newtab-menu-section-block",
+    icon: "delete",
+    action: {
+      // Open the confirmation dialog to block a section.
+      type: actionTypes.DIALOG_OPEN,
+      data: {
+        onConfirm: [
+          // Once the user confirmed their intention to block this section,
+          // update their preferences.
+          actionCreators.AlsoToMain({
+            type: actionTypes.SECTION_PERSONALIZATION_SET,
+            data: {
+              ...sectionPersonalization,
+              [sectionKey]: {
+                isBlocked: true,
+                isFollowed: false,
+              },
+            },
+          }),
+          // Telemetry
+          actionCreators.OnlyToMain({
+            type: actionTypes.BLOCK_SECTION,
+            data: {
+              section: sectionKey,
+              section_position: sectionPosition,
+              event_source: "CONTEXT_MENU",
+            },
+          }),
+          // Also broadcast that this section has been blocked so that
+          // the confirmation dialog knows it needs to disappear now.
+          actionCreators.AlsoToMain({
+            type: actionTypes.DIALOG_CLOSE,
+          }),
+        ],
+        // Pass Fluent strings to ConfirmDialog component for the copy
+        // of the prompt to block sections.
+        body_string_id: [
+          "newtab-section-confirm-block-topic-p1",
+          "newtab-section-confirm-block-topic-p2",
+        ],
+        confirm_button_string_id: "newtab-section-block-topic-button",
+        confirm_button_string_args: { topic: title },
+        cancel_button_string_id: "newtab-section-cancel-button",
+      },
+    },
+    userEvent: "DIALOG_OPEN",
+  }),
+  SectionUnfollow: ({
+    sectionPersonalization,
+    sectionKey,
+    sectionPosition,
+  }) => ({
+    id: "newtab-menu-section-unfollow",
+    action: actionCreators.AlsoToMain({
+      type: actionTypes.SECTION_PERSONALIZATION_SET,
+      data: (({ [sectionKey]: _sectionKey, ...remaining }) => remaining)(
+        sectionPersonalization
+      ),
+    }),
+    impression: actionCreators.OnlyToMain({
+      type: actionTypes.UNFOLLOW_SECTION,
+      data: {
+        section: sectionKey,
+        section_position: sectionPosition,
+        event_source: "CONTEXT_MENU",
+      },
+    }),
+  }),
+  ManageSponsoredContent: () => ({
+    id: "newtab-menu-manage-sponsored-content",
+    action: actionCreators.OnlyToMain({ type: actionTypes.SETTINGS_OPEN }),
+    userEvent: "OPEN_NEWTAB_PREFS",
+  }),
+  OurSponsorsAndYourPrivacy: () => ({
+    id: "newtab-menu-our-sponsors-and-your-privacy",
+    action: actionCreators.OnlyToMain({
+      type: actionTypes.OPEN_LINK,
+      data: {
+        url: "https://support.mozilla.org/kb/pocket-sponsored-stories-new-tabs",
+      },
+    }),
+    userEvent: "CLICK_PRIVACY_INFO",
+  }),
+  ReportAd: site => {
+    return {
+      id: "newtab-menu-report-this-ad",
+      action: actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_AD_OPEN,
+        data: {
+          card_type: site.card_type,
+          position: site.position,
+          reporting_url: site.shim.report,
+          url: site.url,
+        },
+      }),
+    };
+  },
+
+  ReportContent: site => {
+    return {
+      id: "newtab-menu-report",
+      action: actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_CONTENT_OPEN,
+        data: {
+          card_type: site.card_type,
+          corpus_item_id: site.corpus_item_id,
+          scheduled_corpus_item_id: site.scheduled_corpus_item_id,
+          section_position: site.section_position,
+          section: site.section,
+          title: site.title,
+          topic: site.topic,
+          url: site.url,
+        },
+      }),
+    };
+  },
+};
+
+;// CONCATENATED MODULE: ./content-src/components/LinkMenu/LinkMenu.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+const DEFAULT_SITE_MENU_OPTIONS = ["CheckPinTopSite", "EditTopSite", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl"];
+class _LinkMenu extends (external_React_default()).PureComponent {
+  getOptions() {
+    const {
+      props
+    } = this;
+    const {
+      site,
+      index,
+      source,
+      isPrivateBrowsingEnabled,
+      siteInfo,
+      platform,
+      dispatch,
+      options,
+      shouldSendImpressionStats,
+      userEvent = actionCreators.UserEvent
+    } = props;
+
+    // Handle special case of default site
+    const propOptions = site.isDefault && !site.searchTopSite && !site.sponsored_position ? DEFAULT_SITE_MENU_OPTIONS : options;
+    const linkMenuOptions = propOptions.map(o => LinkMenuOptions[o](site, index, source, isPrivateBrowsingEnabled, siteInfo, platform)).map(option => {
+      const {
+        action,
+        impression,
+        id,
+        type,
+        userEvent: eventName
+      } = option;
+      if (!type && id) {
+        option.onClick = (event = {}) => {
+          const {
+            ctrlKey,
+            metaKey,
+            shiftKey,
+            button
+          } = event;
+          // Only send along event info if there's something non-default to send
+          if (ctrlKey || metaKey || shiftKey || button === 1) {
+            action.data = Object.assign({
+              event: {
+                ctrlKey,
+                metaKey,
+                shiftKey,
+                button
+              }
+            }, action.data);
+          }
+          dispatch(action);
+          if (eventName) {
+            let value;
+            // Bug 1958135: Pass additional info to ac.OPEN_NEW_WINDOW event
+            if (action.type === "OPEN_NEW_WINDOW") {
+              const {
+                card_type,
+                corpus_item_id,
+                event_source,
+                fetchTimestamp,
+                firstVisibleTimestamp,
+                format,
+                is_section_followed,
+                received_rank,
+                recommendation_id,
+                recommended_at,
+                scheduled_corpus_item_id,
+                section_position,
+                section,
+                selected_topics,
+                tile_id,
+                topic
+              } = action.data;
+              value = {
+                card_type,
+                corpus_item_id,
+                event_source,
+                fetchTimestamp,
+                firstVisibleTimestamp,
+                format,
+                received_rank,
+                recommendation_id,
+                recommended_at,
+                scheduled_corpus_item_id,
+                ...(section ? {
+                  is_section_followed,
+                  section_position,
+                  section
+                } : {}),
+                selected_topics: selected_topics ? selected_topics : "",
+                tile_id,
+                topic
+              };
+            } else {
+              value = {
+                card_type: site.flight_id ? "spoc" : "organic"
+              };
+            }
+            const userEventData = Object.assign({
+              event: eventName,
+              source,
+              action_position: index,
+              value
+            }, siteInfo);
+            dispatch(userEvent(userEventData));
+            if (impression && shouldSendImpressionStats) {
+              dispatch(impression);
+            }
+          }
+        };
+      }
+      return option;
+    });
+
+    // This is for accessibility to support making each item tabbable.
+    // We want to know which item is the first and which item
+    // is the last, so we can close the context menu accordingly.
+    linkMenuOptions[0].first = true;
+    linkMenuOptions[linkMenuOptions.length - 1].last = true;
+    return linkMenuOptions;
+  }
+  render() {
+    return /*#__PURE__*/external_React_default().createElement(ContextMenu, {
+      onUpdate: this.props.onUpdate,
+      onShow: this.props.onShow,
+      options: this.getOptions(),
+      keyboardAccess: this.props.keyboardAccess
+    });
+  }
+}
+const getState = state => ({
+  isPrivateBrowsingEnabled: state.Prefs.values.isPrivateBrowsingEnabled,
+  platform: state.Prefs.values.platform
+});
+const LinkMenu = (0,external_ReactRedux_namespaceObject.connect)(getState)(_LinkMenu);
+;// CONCATENATED MODULE: ./content-src/components/ContextMenu/ContextMenuButton.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+class ContextMenuButton extends (external_React_default()).PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showContextMenu: false,
+      contextMenuKeyboard: false
+    };
+    this.onClick = this.onClick.bind(this);
+    this.onKeyDown = this.onKeyDown.bind(this);
+    this.onUpdate = this.onUpdate.bind(this);
+  }
+  openContextMenu(isKeyBoard) {
+    if (this.props.onUpdate) {
+      this.props.onUpdate(true);
+    }
+    this.setState({
+      showContextMenu: true,
+      contextMenuKeyboard: isKeyBoard
+    });
+  }
+  onClick(event) {
+    event.preventDefault();
+    this.openContextMenu(false, event);
+  }
+  onKeyDown(event) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      this.openContextMenu(true, event);
+    }
+  }
+  onUpdate(showContextMenu) {
+    if (this.props.onUpdate) {
+      this.props.onUpdate(showContextMenu);
+    }
+    this.setState({
+      showContextMenu
+    });
+  }
+  render() {
+    const {
+      tooltipArgs,
+      tooltip,
+      children,
+      refFunction
+    } = this.props;
+    const {
+      showContextMenu,
+      contextMenuKeyboard
+    } = this.state;
+    return /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("button", {
+      "aria-haspopup": "menu",
+      "aria-expanded": showContextMenu,
+      "data-l10n-id": tooltip,
+      "data-l10n-args": tooltipArgs ? JSON.stringify(tooltipArgs) : null,
+      className: "context-menu-button icon",
+      onKeyDown: this.onKeyDown,
+      onClick: this.onClick,
+      ref: refFunction,
+      tabIndex: this.props.tabIndex || 0,
+      onFocus: this.props.onFocus
+    }), showContextMenu ? /*#__PURE__*/external_React_default().cloneElement(children, {
+      keyboardAccess: contextMenuKeyboard,
+      onUpdate: this.onUpdate
+    }) : null);
+  }
+}
+;// CONCATENATED MODULE: ./content-src/components/DiscoveryStreamComponents/DSLinkMenu/DSLinkMenu.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+class _DSLinkMenu extends (external_React_default()).PureComponent {
+  render() {
+    const {
+      index,
+      dispatch
+    } = this.props;
+    let TOP_STORIES_CONTEXT_MENU_OPTIONS;
+    const PREF_REPORT_ADS_ENABLED = "discoverystream.reportAds.enabled";
+    const prefs = this.props.Prefs.values;
+    const showAdsReporting = prefs[PREF_REPORT_ADS_ENABLED];
+    const isSpoc = this.props.card_type === "spoc";
+    if (isSpoc) {
+      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["BlockUrl", ...(showAdsReporting ? ["ReportAd"] : []), "ManageSponsoredContent", "OurSponsorsAndYourPrivacy"];
+    } else {
+      TOP_STORIES_CONTEXT_MENU_OPTIONS = ["CheckBookmark", "Separator", "OpenInNewWindow", "OpenInPrivateWindow", "Separator", "BlockUrl", ...(this.props.section ? ["ReportContent"] : [])];
+    }
+    const type = this.props.type || "DISCOVERY_STREAM";
+    const title = this.props.title || this.props.source;
+    return /*#__PURE__*/external_React_default().createElement("div", {
+      className: "context-menu-position-container"
+    }, /*#__PURE__*/external_React_default().createElement(ContextMenuButton, {
+      tooltip: "newtab-menu-content-tooltip",
+      tooltipArgs: {
+        title
+      },
+      onUpdate: this.props.onMenuUpdate,
+      tabIndex: this.props.tabIndex
+    }, /*#__PURE__*/external_React_default().createElement(LinkMenu, {
+      dispatch: dispatch,
+      index: index,
+      source: type.toUpperCase(),
+      onShow: this.props.onMenuShow,
+      options: TOP_STORIES_CONTEXT_MENU_OPTIONS,
+      shouldSendImpressionStats: true,
+      userEvent: actionCreators.DiscoveryStreamUserEvent,
+      site: {
+        referrer: "https://getpocket.com/recommendations",
+        title: this.props.title,
+        type: this.props.type,
+        url: this.props.url,
+        guid: this.props.id,
+        pocket_id: this.props.pocket_id,
+        card_type: this.props.card_type,
+        shim: this.props.shim,
+        bookmarkGuid: this.props.bookmarkGuid,
+        flight_id: this.props.flightId,
+        tile_id: this.props.tile_id,
+        recommendation_id: this.props.recommendation_id,
+        corpus_item_id: this.props.corpus_item_id,
+        scheduled_corpus_item_id: this.props.scheduled_corpus_item_id,
+        firstVisibleTimestamp: this.props.firstVisibleTimestamp,
+        recommended_at: this.props.recommended_at,
+        received_rank: this.props.received_rank,
+        topic: this.props.topic,
+        position: index,
+        ...(this.props.format ? {
+          format: this.props.format
+        } : {}),
+        ...(this.props.section ? {
+          section: this.props.section,
+          section_position: this.props.section_position,
+          is_section_followed: this.props.is_section_followed
+        } : {})
+      }
+    })));
+  }
+}
+const DSLinkMenu = (0,external_ReactRedux_namespaceObject.connect)(state => ({
+  Prefs: state.Prefs
+}))(_DSLinkMenu);
+;// CONCATENATED MODULE: ./content-src/lib/utils.jsx
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+const PREF_WEATHER_PLACEMENT = "weather.placement";
+const PREF_DAILY_BRIEF_SECTIONID = "discoverystream.dailyBrief.sectionId";
+const PREF_DAILY_BRIEF_ENABLED = "discoverystream.dailyBrief.enabled";
+const PREF_STORIES_ENABLED = "feeds.section.topstories";
+const PREF_SYSTEM_STORIES_ENABLED = "feeds.system.topstories";
+
+/**
+ * A custom react hook that sets up an IntersectionObserver to observe a single
+ * or list of elements and triggers a callback when the element comes into the viewport
+ * Note: The refs used should be an array type
+ *
+ * @function useIntersectionObserver
+ * @param {function} callback - The function to call when an element comes into the viewport
+ * @param {object} options - Options object passed to Intersection Observer:
+ * https://developer.mozilla.org/en-US/docs/Web/API/IntersectionObserver/IntersectionObserver#options
+ * @param {boolean} [isSingle = false] Boolean if the elements are an array or single element
+ *
+ * @returns {React.MutableRefObject} a ref containing an array of elements or single element
+ */
+function useIntersectionObserver(callback, threshold = 0.3) {
+  const elementsRef = (0,external_React_namespaceObject.useRef)([]);
+  const triggeredElements = (0,external_React_namespaceObject.useRef)(new WeakSet());
+  (0,external_React_namespaceObject.useEffect)(() => {
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !triggeredElements.current.has(entry.target)) {
+          triggeredElements.current.add(entry.target);
+          callback(entry.target);
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold
+    });
+    elementsRef.current.forEach(el => {
+      if (el && !triggeredElements.current.has(el)) {
+        observer.observe(el);
+      }
+    });
+
+    // Cleanup function to disconnect observer on unmount
+    return () => observer.disconnect();
+  }, [callback, threshold]);
+  return elementsRef;
+}
+
+/**
+ * Determines which column layout is active based on the screen width
+ *
+ * @param {number} screenWidth - The current window width (in pixels)
+ * @returns {string} The active column layout (e.g. "col-3", "col-2", "col-1")
+ */
+function getActiveColumnLayout(screenWidth) {
+  const breakpoints = [{
+    min: 1374,
+    column: "col-4"
+  },
+  // $break-point-sections-variant
+  {
+    min: 1122,
+    column: "col-3"
+  },
+  // $break-point-widest
+  {
+    min: 724,
+    column: "col-2"
+  },
+  // $break-point-layout-variant
+  {
+    min: 0,
+    column: "col-1"
+  } // (default layout)
+  ];
+  return breakpoints.find(bp => screenWidth >= bp.min).column;
+}
+
+/**
+ * Determines the active card size ("small", "medium", or "large") based on the screen width
+ * and class names applied to the card element at the time of an event (example: click)
+ *
+ * @param {number} screenWidth - The current window width (in pixels).
+ * @param {string | string[]} classNames - A string or array of class names applied to the sections card.
+ * @param {boolean[]} sectionsEnabled - If sections is not enabled, all cards are `medium-card`
+ * @param {number} flightId - Error ege case: This function should not be called on spocs, which have flightId
+ * @returns {"small-card" | "medium-card" | "large-card" | null} The active card type, or null if none is matched.
+ */
+function getActiveCardSize(screenWidth, classNames, sectionsEnabled, flightId) {
+  // Only applies to sponsored content
+  if (flightId) {
+    return "spoc";
+  }
+
+  // Default layout only supports `medium-card`
+  if (!sectionsEnabled) {
+    // Missing arguments
+    return "medium-card";
+  }
+
+  // Return null if no values are available
+  if (!screenWidth || !classNames) {
+    // Missing arguments
+    return null;
+  }
+  const classList = classNames.split(" ");
+  const cardTypes = ["small", "medium", "large"];
+
+  // Determine which column is active based on the current screen width
+  const currColumnCount = getActiveColumnLayout(screenWidth);
+
+  // Match the card type for that column count
+  for (let type of cardTypes) {
+    const className = `${currColumnCount}-${type}`;
+    if (classList.includes(className)) {
+      // Special case: below $break-point-medium (610px), report `col-1-small` as medium
+      if (screenWidth < 610 && currColumnCount === "col-1" && type === "small") {
+        return "medium-card";
+      }
+      // Will be either "small-card", "medium-card", or "large-card"
+      return `${type}-card`;
+    }
+  }
+  return null;
+}
+const CONFETTI_VARS = ["--color-red-40", "--color-yellow-40", "--color-purple-40", "--color-blue-40", "--color-green-40"];
+
+/**
+ * Custom hook to animate a confetti burst.
+ *
+ * @param {number} count   Number of particles
+ * @param {number} spread  spread of confetti
+ * @returns {[React.RefObject<HTMLCanvasElement>, () => void]}
+ */
+function useConfetti(count = 80, spread = Math.PI / 3) {
+  // avoid errors from about:home cache
+  const prefersReducedMotion = typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let colors;
+  // if in abouthome cache, getComputedStyle will not be available
+  if (typeof getComputedStyle === "function") {
+    const styles = getComputedStyle(document.documentElement);
+    colors = CONFETTI_VARS.map(variable => styles.getPropertyValue(variable).trim());
+  } else {
+    colors = ["#fa5e75", "#de9600", "#c671eb", "#3f94ff", "#37b847"];
+  }
+  const canvasRef = (0,external_React_namespaceObject.useRef)(null);
+  const particlesRef = (0,external_React_namespaceObject.useRef)([]);
+  const animationFrameRef = (0,external_React_namespaceObject.useRef)(0);
+
+  // initialize/reset pool
+  const initializeConfetti = (0,external_React_namespaceObject.useCallback)((width, height) => {
+    const centerX = width / 2;
+    const centerY = height;
+    const pool = particlesRef.current;
+
+    // Create or overwrite each particle

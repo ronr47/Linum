@@ -1,5 +1,5 @@
 import unittest
-from linum.src.semantic.types import (
+from linum.semantic.types import (
     SymbolContext,
     FunctionContract,
     ParameterContract,
@@ -8,9 +8,9 @@ from linum.src.semantic.types import (
     OwnershipMode,
     Type,
 )
-from linum.src.frontend.lexer import Lexer
-from linum.src.frontend.parser import Parser
-from linum.src.ast.nodes import (
+from linum.frontend.lexer import Lexer
+from linum.frontend.parser import Parser
+from linum.ast.nodes import (
     BlockStmt,
     LetStmt,
     IfStmt,
@@ -21,7 +21,7 @@ from linum.src.ast.nodes import (
     CallExpr,
     ReturnStmt,
 )
-from linum.src.lowering.cfg import (
+from linum.lowering.cfg import (
     CfgFunction,
     BasicBlock,
     CfgBuilder,
@@ -31,8 +31,8 @@ from linum.src.lowering.cfg import (
     IrLoad,
     IrReturn,
 )
-from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
+from linum.lowering.ssa import SsaConverter, SsaVerifier
+from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
 
 
 class TestLinumP0Soundness(unittest.TestCase):

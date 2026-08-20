@@ -1,0 +1,4 @@
+{
+    let A: matrix = matrix_new_non_square_placeholder;
+    let C: i64 = det(A);
+}

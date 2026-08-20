@@ -1,6 +1,6 @@
 import pytest
-from linum.src.ast.nodes import FunctionDecl, BlockStmt, LetStmt, ReturnStmt, IdentifierExpr, FieldAccessExpr
-from linum.src.semantic.types import (
+from linum.ast.nodes import FunctionDecl, BlockStmt, LetStmt, ReturnStmt, IdentifierExpr, FieldAccessExpr
+from linum.semantic.types import (
     SymbolContext,
     FunctionContract,
     PRIMITIVE_INTEGER,
@@ -8,9 +8,9 @@ from linum.src.semantic.types import (
     Type,
     StructType,
 )
-from linum.src.lowering.cfg import CfgBuilder
-from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
+from linum.lowering.cfg import CfgBuilder
+from linum.lowering.ssa import SsaConverter, SsaVerifier
+from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
 
 def test_composite_struct_field_access_pipeline():
     """Validates full lowering of struct field access to LLVM GEP with proper byte offsets."""

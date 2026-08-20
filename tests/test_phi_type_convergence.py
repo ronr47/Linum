@@ -1,9 +1,9 @@
 import pytest
-from linum.src.compiler import LinumCompiler
-from linum.src.lowering.cfg import CfgBuilder
-from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-from linum.src.semantic.types import (
+from linum.compiler import LinumCompiler
+from linum.lowering.cfg import CfgBuilder
+from linum.lowering.ssa import SsaConverter, SsaVerifier
+from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+from linum.semantic.types import (
     SymbolContext,
     FunctionContract,
     PRIMITIVE_INTEGER,
@@ -11,9 +11,9 @@ from linum.src.semantic.types import (
     OwnershipMode,
     Type,
 )
-from linum.src.frontend.lexer import Lexer
-from linum.src.frontend.parser import Parser
-from linum.src.ast.nodes import FunctionDecl
+from linum.frontend.lexer import Lexer
+from linum.frontend.parser import Parser
+from linum.ast.nodes import FunctionDecl
 
 def test_nested_diamond_pointer_phi_convergence():
     """Validates that a variable assigned pointers across nested control-flow diamonds converges to 'phi ptr'."""
@@ -63,7 +63,7 @@ def test_nested_diamond_pointer_phi_convergence():
 
 def test_cyclic_loop_pointer_phi_convergence():
     """Validates that back-edge assignments inside cyclic CFG loops converge to 'phi ptr'."""
-    from linum.src.lowering.cfg import BasicBlock, CfgFunction, IrStore, IrLoad, IrBranch, IrCondBranch, IrReturn
+    from linum.lowering.cfg import BasicBlock, CfgFunction, IrStore, IrLoad, IrBranch, IrCondBranch, IrReturn
 
     entry_bb = BasicBlock("entry")
     entry_bb.instructions = [IrStore(src_reg="%ptr_init", dest_var="p"), IrBranch(target_label="loop_header")]

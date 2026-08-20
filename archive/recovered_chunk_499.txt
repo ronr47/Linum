@@ -1,0 +1,18 @@
+
+    Register the decorated validator for a ``version`` of the specification.
+
+    Registered validators and their meta schemas will be considered when
+    parsing ``$schema`` properties' URIs.
+
+    Arguments:
+
+        version (str):
+
+            An identifier to use as the version's name
+
+    Returns:
+
+        collections.Callable:
+
+            a class decorator to decorate the validator with the version
+    

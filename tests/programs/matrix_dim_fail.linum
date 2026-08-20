@@ -1,0 +1,5 @@
+{
+    let A: matrix = matrix_new_dim_mismatch_placeholder;
+    let B: matrix = matrix_new_dim_mismatch_placeholder;
+    let C: matrix = A * B;
+}

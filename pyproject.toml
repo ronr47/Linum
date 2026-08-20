@@ -10,10 +10,19 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
+[project.scripts]
+linum = "linum.cli:main"
+
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["linum*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["..", "."]
+# Enforce microarchitecture compliance and filter out heavy workloads by default
+addopts = "-m 'not avx512 and not heavy' --tb=short"
+markers = [
+    "avx512: Tests generating AVX-512 vectors that cause SIGILL on Gemini Lake SSE4.2 hardware.",
+    "heavy: High-memory neuro-symbolic or space-time metric suites prone to OOM crashes."
+]

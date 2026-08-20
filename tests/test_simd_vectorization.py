@@ -1,7 +1,7 @@
 import pytest
-from src.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
-from src.semantic.types import SymbolContext, PRIMITIVE_INTEGER, OwnershipMode
-from src.ast.simd import SimdVectorOpStmt
+from linum.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
+from linum.semantic.types import SymbolContext, PRIMITIVE_INTEGER, OwnershipMode
+from linum.ast.simd import SimdVectorOpStmt
 
 def test_simd_generation_and_llvm_compliance():
     """Validates that SIMD operation sequences map successfully through structural validation pipelines when operands are allocated inside local flow scope."""

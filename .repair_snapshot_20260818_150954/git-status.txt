@@ -1,0 +1,22 @@
+## master
+ M pyproject.toml
+ M src/ast/nodes.py
+ M src/semantic/analyzer.py
+ M tests/test_avx512_codegen.py
+ M tests/test_neuro_symbolic_verifier.py
+?? .repair_snapshot_20260818_150954/
+?? build/
+?? dist/
+?? linum-compiler.spec
+?? linum.egg-info/
+?? linum/
+?? quantum_runtime.elf
+?? run_full_audit.sh
+?? src/ast/quantum.py
+?? src/c_auditor.py
+?? test_complex.linum
+?? test_main.linum
+?? tests/test_c_auditor.py
+?? tests/test_chrono_circuits.py
+?? tests/test_leak_sentinel.py
+?? tests/valid_audit_sample.linum

@@ -1,6 +1,6 @@
 import pytest
-from linum.src.ast.nodes import FunctionDecl, BlockStmt, LetStmt, ReturnStmt, IdentifierExpr, FieldAccessExpr
-from linum.src.semantic.types import (
+from linum.ast.nodes import FunctionDecl, BlockStmt, LetStmt, ReturnStmt, IdentifierExpr, FieldAccessExpr
+from linum.semantic.types import (
     SymbolContext,
     FunctionContract,
     PRIMITIVE_INTEGER,
@@ -9,9 +9,9 @@ from linum.src.semantic.types import (
     Type,
     StructType,
 )
-from linum.src.lowering.cfg import CfgBuilder
-from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
+from linum.lowering.cfg import CfgBuilder
+from linum.lowering.ssa import SsaConverter, SsaVerifier
+from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
 
 def test_nested_struct_offset_calculation():
     """Validates multi-level field access: outer.inner.val."""
@@ -57,14 +57,14 @@ def test_invalid_struct_field_rejection():
     ctx = SymbolContext()
     ctx.bind("%pt_ptr", point_type, OwnershipMode.COPY)
 
-    from src.semantic.errors import NeuroSymbolicDiagnosticError
+    from linum.semantic.errors import NeuroSymbolicDiagnosticError
     with pytest.raises(NeuroSymbolicDiagnosticError, match="has no field 'z'|Valid structural fields"):
         ast_func.check_contract(ctx)
 
 def test_neuro_symbolic_repair_suggestion():
     """Validates that wrong field lookups offer an intelligent string repair suggestion."""
     import pytest
-    from src.semantic.errors import NeuroSymbolicDiagnosticError
+    from linum.semantic.errors import NeuroSymbolicDiagnosticError
     
     point_type = StructType("Point", {"x": PRIMITIVE_INTEGER, "y": PRIMITIVE_INTEGER})
     contract = FunctionContract("repair_test", (), PRIMITIVE_INTEGER, OwnershipMode.COPY)

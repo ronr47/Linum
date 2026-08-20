@@ -1,8 +1,8 @@
 import pytest
-from src.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
-from src.semantic.types import SymbolContext, PRIMITIVE_BOOLEAN, PRIMITIVE_INTEGER, OwnershipMode
-from src.semantic.errors import NeuroSymbolicDiagnosticError
-from src.ast.biology import BioSynthesisPayloadStmt
+from linum.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
+from linum.semantic.types import SymbolContext, PRIMITIVE_BOOLEAN, PRIMITIVE_INTEGER, OwnershipMode
+from linum.semantic.errors import NeuroSymbolicDiagnosticError
+from linum.ast.biology import BioSynthesisPayloadStmt
 
 def test_valid_wetware_sequence_compilation():
     """Validates that a correctly mapped biological payload passes structural sequence check boundaries."""

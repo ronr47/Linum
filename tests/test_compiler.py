@@ -1,10 +1,10 @@
 import unittest
-from linum.src.semantic.types import Type, OwnershipMode, ParameterContract, FunctionContract, SymbolContext, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN
-from linum.src.semantic.analyzer import SemFunctionDecl
-from linum.src.ast.nodes import IdentifierExpr, LetStmt, AssignStmt, MoveStmt, ReturnStmt, BlockStmt, IfStmt, FunctionDecl
-from linum.src.lowering.cfg import CfgBuilder, CfgVerifier
-from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
+from linum.semantic.types import Type, OwnershipMode, ParameterContract, FunctionContract, SymbolContext, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN
+from linum.semantic.analyzer import SemFunctionDecl
+from linum.ast.nodes import IdentifierExpr, LetStmt, AssignStmt, MoveStmt, ReturnStmt, BlockStmt, IfStmt, FunctionDecl
+from linum.lowering.cfg import CfgBuilder, CfgVerifier
+from linum.lowering.ssa import SsaConverter, SsaVerifier
+from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
 
 class TestLinumCompiler(unittest.TestCase):
     def test_sound_linear_pipeline_lowering(self):
@@ -75,12 +75,12 @@ if __name__ == "__main__":
 
     def test_unmanaged_pointers_lowering(self):
         """Verifies unmanaged pointer nodes lower smoothly and bypass standard linear checks."""
-        from linum.src.ast.nodes import PtrAllocaExpr, PtrStoreStmt, PtrLoadExpr, BlockStmt, LetStmt, ReturnStmt
-        from linum.src.semantic.types import Type, OwnershipMode, FunctionContract, PRIMITIVE_INTEGER
-        from linum.src.lowering.cfg import CfgBuilder
-        from linum.src.lowering.ssa import SsaConverter
-        from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-        from linum.src.semantic.analyzer import SemBlockStmt, SemLetStmt, SemReturnStmt
+        from linum.ast.nodes import PtrAllocaExpr, PtrStoreStmt, PtrLoadExpr, BlockStmt, LetStmt, ReturnStmt
+        from linum.semantic.types import Type, OwnershipMode, FunctionContract, PRIMITIVE_INTEGER
+        from linum.lowering.cfg import CfgBuilder
+        from linum.lowering.ssa import SsaConverter
+        from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+        from linum.semantic.analyzer import SemBlockStmt, SemLetStmt, SemReturnStmt
 
         # Construct a synthetic AST using the newly implemented unmanaged pointer primitives
         # Allocates an unmanaged pointer, stores an address value, and loads it back.
@@ -89,7 +89,7 @@ if __name__ == "__main__":
         load_node = PtrLoadExpr(pointer_expr="ptr_var")
 
         # Build manual lowered equivalent blocks to assert backend data lane compliance
-        from linum.src.lowering.cfg import BasicBlock, IrAlloca, IrStore, IrPtrLoad, IrPtrStore, IrReturn, CfgFunction
+        from linum.lowering.cfg import BasicBlock, IrAlloca, IrStore, IrPtrLoad, IrPtrStore, IrReturn, CfgFunction
         entry_bb = BasicBlock("entry")
         entry_bb.instructions = [
             IrAlloca("ptr_var", "ptr"),
@@ -122,8 +122,8 @@ if __name__ == "__main__":
 
     def test_neuro_symbolic_verifier_compiler_rejection(self):
         """Validates that untrusted programs with undefined symbols fail at the verifier stage."""
-        from linum.src.compiler import compile_source
-        from linum.src.diagnostics import DiagnosticError
+        from linum.compiler import compile_source
+        from linum.diagnostics import DiagnosticError
 
         hallucinated_source = """
         {

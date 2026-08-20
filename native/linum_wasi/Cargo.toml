@@ -1,0 +1,8 @@
+[package]
+name = "linum_wasi"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "linum_wasi_runner"
+path = "src/main.rs"

@@ -1,14 +1,17 @@
 import pytest
-from src.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
-from src.semantic.types import SymbolContext, PRIMITIVE_INTEGER, OwnershipMode
-from src.ast.simd import SimdVectorOpStmt
-from src.lowering.cfg import CfgBuilder
-from src.lowering.ssa import SsaConverter
-from src.lowering.llvm import LlvmEmitter
+import shutil
+from linum.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt
+from linum.semantic.types import SymbolContext, PRIMITIVE_INTEGER, OwnershipMode
+from linum.ast.simd import SimdVectorOpStmt
+from linum.lowering.cfg import CfgBuilder
+from linum.lowering.ssa import SsaConverter
+from linum.lowering.llvm import LlvmEmitter
 
+@pytest.mark.avx512
 def test_avx512_metadata_and_alignment_compliance():
-    """Statically verifies that backend emission introduces explicit AVX-512 target flags and 64-byte cache alignment metrics."""
+    """Statically verifies that backend emission introduces explicit AVX-512 target flags and 64-byte alignment compliance."""
     contract = FunctionContract("avx512_test", (), PRIMITIVE_INTEGER, OwnershipMode.COPY)
+    # ... Rest of your original test logic continues here ...
     
     # 512-bit vector operation containing 16 packed i32 primitive integer operands
     op_stmt = SimdVectorOpStmt(

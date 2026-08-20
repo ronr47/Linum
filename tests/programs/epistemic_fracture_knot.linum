@@ -1,0 +1,8 @@
+{
+    let linear_root : LINEAR = %uninit_stub;
+    borrow linear_root as alias_handle {
+        move premature_sink = linear_root;
+        let speculative_escape : COPY = %val_42;
+    }
+    return %val_0;
+}

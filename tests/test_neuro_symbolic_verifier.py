@@ -1,12 +1,16 @@
 import pytest
-from linum.src.ast.nodes import (
+pytestmark = pytest.mark.heavy
+
+from linum.ast.nodes import (
     FunctionDecl, BlockStmt, LetStmt, AssignStmt, MoveStmt, IfStmt,
     ReturnStmt, IdentifierExpr, CallExpr
 )
-from linum.src.semantic.types import (
+# ... The rest of your exact test cases follow down the file ...
+
+from linum.semantic.types import (
     FunctionContract, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN, OwnershipMode, Type, SymbolContext
 )
-from linum.src.semantic.verifier import NeuroSymbolicAstVerifier, SemanticVerificationError
+from linum.semantic.verifier import NeuroSymbolicAstVerifier, SemanticVerificationError
 
 def test_verifier_accepts_sound_ast():
     contract = FunctionContract("sound_func", (), PRIMITIVE_INTEGER, OwnershipMode.COPY)

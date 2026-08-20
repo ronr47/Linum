@@ -1,0 +1,53 @@
+
+// REGISTER: SYSCALL // EXECUTE: RUST_HEREDOC_STREAM
+// TARGET: Qualcomm HS-USB QD008 / Oppo A9 Bare-Metal Transport
+
+use rusb::{Context, Device, DeviceHandle, UsbContext};
+use std::time::Duration;
+
+const QCOM_VID: u16 = 0x05C6;
+const EDL_PID: u16 = 0x9008;
+
+fn main() -> Result<(), rusb::Error> {
+    // Injecting Firehose XML configuration payloads via standard Rust raw byte string literals (Heredoc equivalent)
+    let firehose_nop_payload = r#"<?xml version="1.0" encoding="UTF-8" ?>
+<data>
+    <nop />
+</data>"#;
+
+    let firehose_erase_payload = r#"<?xml version="1.0" encoding="UTF-8" ?>
+<data>
+    <program SECTOR_SIZE_IN_BYTES="512" num_partition_sectors="0" physical_partition_number="0" size_in_bytes="0" start_sector="0" filename="" label="userdata" erase="true" />
+</data>"#;
+
+    let context = Context::new()?;
+    let devices = context.devices()?;
+
+    let device = devices
+        .iter()
+        .find(|d| {
+            let desc = d.device_descriptor().unwrap();
+            desc.vendor_id() == QCOM_VID && desc.product_id() == EDL_PID
+        })
+        .expect("[-] Target Oppo hardware interface not detected. Verify EDL test-points.");
+
+    println!("[+] Target found. Initializing descriptor handles...");
+    let mut handle = device.open()?;
+    
+    if handle.kernel_driver_active(0).unwrap_or(false) {
+        handle.detach_kernel_driver(0)?;
+    }
+    handle.claim_interface(0)?;
+
+    let timeout = Duration::from_secs(5);
+    
+    // Dispatching Raw NOP sequence
+    println!("[+] Streaming NOP XML validation payload to Bulk Out...");
+    match handle.write_bulk(0x01, firehose_nop_payload.as_bytes(), timeout) {
+        Ok(b) => println!("[+] Handshake transmission successful: {} bytes sent.", b),
+        Err(e) => eprintln!("[-] Bus communication error: {:?}", e),
+    }
+
+    // Diagnostics completed
+    Ok(())
+}

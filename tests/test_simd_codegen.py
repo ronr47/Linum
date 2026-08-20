@@ -1,10 +1,10 @@
 import pytest
-from src.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
-from src.semantic.types import SymbolContext, PRIMITIVE_INTEGER, OwnershipMode
-from src.ast.simd import SimdVectorOpStmt
-from src.lowering.cfg import CfgBuilder
-from src.lowering.ssa import SsaConverter
-from src.lowering.llvm import LlvmEmitter
+from linum.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
+from linum.semantic.types import SymbolContext, PRIMITIVE_INTEGER, OwnershipMode
+from linum.ast.simd import SimdVectorOpStmt
+from linum.lowering.cfg import CfgBuilder
+from linum.lowering.ssa import SsaConverter
+from linum.lowering.llvm import LlvmEmitter
 
 def test_simd_hardware_register_generation_string():
     """Statically verifies backend emission matches packed primitive architectural instructions."""

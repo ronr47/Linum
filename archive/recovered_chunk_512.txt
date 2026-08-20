@@ -1,0 +1,13 @@
+zipimporter(archivepath) -> zipimporter object
+
+    Create a new zipimporter instance. 'archivepath' must be a path to
+    a zipfile, or to a specific path inside a zipfile. For example, it can be
+    '/tmp/myimport.zip', or '/tmp/myimport.zip/mydirectory', if mydirectory is a
+    valid directory inside the archive.
+
+    'ZipImportError is raised if 'archivepath' doesn't point to a valid Zip
+    archive.
+
+    The 'archive' attribute of zipimporter objects contains the name of the
+    zipfile targeted.
+    

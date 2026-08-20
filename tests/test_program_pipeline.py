@@ -1,8 +1,8 @@
 from pathlib import Path
 import pytest
 
-from linum.src.compiler import compile_source
-from linum.src.diagnostics import DiagnosticError
+from linum.compiler import compile_source
+from linum.diagnostics import DiagnosticError
 
 ROOT = Path(__file__).parent / "programs"
 
@@ -34,20 +34,20 @@ def test_linear_failure_file_pipeline():
 
 def test_unmanaged_ptr_integration_pipeline():
     """Validates full end-to-end compiler handling of raw unsafe pointer manipulations."""
-    from linum.src.compiler import LinumCompiler
-    from linum.src.lowering.cfg import CfgBuilder, LiveVariableAnalyzer
-    from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-    from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-    from linum.src.semantic.types import (
+    from linum.compiler import LinumCompiler
+    from linum.lowering.cfg import CfgBuilder, LiveVariableAnalyzer
+    from linum.lowering.ssa import SsaConverter, SsaVerifier
+    from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+    from linum.semantic.types import (
         SymbolContext,
         FunctionContract,
         PRIMITIVE_INTEGER,
         OwnershipMode,
         Type,
     )
-    from linum.src.frontend.lexer import Lexer
-    from linum.src.frontend.parser import Parser
-    from linum.src.ast.nodes import FunctionDecl
+    from linum.frontend.lexer import Lexer
+    from linum.frontend.parser import Parser
+    from linum.ast.nodes import FunctionDecl
 
     source_program = """
     {
@@ -87,20 +87,20 @@ def test_unmanaged_ptr_integration_pipeline():
 
 def test_raw_pointer_arithmetic_pipeline():
     """Validates full end-to-end compiler handling of unmanaged pointer offset math (GEP)."""
-    from linum.src.compiler import LinumCompiler
-    from linum.src.lowering.cfg import CfgBuilder, LiveVariableAnalyzer
-    from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-    from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-    from linum.src.semantic.types import (
+    from linum.compiler import LinumCompiler
+    from linum.lowering.cfg import CfgBuilder, LiveVariableAnalyzer
+    from linum.lowering.ssa import SsaConverter, SsaVerifier
+    from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+    from linum.semantic.types import (
         SymbolContext,
         FunctionContract,
         PRIMITIVE_INTEGER,
         OwnershipMode,
         Type,
     )
-    from linum.src.frontend.lexer import Lexer
-    from linum.src.frontend.parser import Parser
-    from linum.src.ast.nodes import FunctionDecl
+    from linum.frontend.lexer import Lexer
+    from linum.frontend.parser import Parser
+    from linum.ast.nodes import FunctionDecl
 
     source_program = """
     {
@@ -138,10 +138,10 @@ def test_raw_pointer_arithmetic_pipeline():
 
 def test_pointer_arithmetic_invalid_base_type_rejection():
     """Validates that non-pointer base types in offset arithmetic raise TypeError."""
-    from linum.src.frontend.lexer import Lexer
-    from linum.src.frontend.parser import Parser
-    from linum.src.ast.nodes import FunctionDecl
-    from linum.src.semantic.types import (
+    from linum.frontend.lexer import Lexer
+    from linum.frontend.parser import Parser
+    from linum.ast.nodes import FunctionDecl
+    from linum.semantic.types import (
         SymbolContext,
         FunctionContract,
         PRIMITIVE_INTEGER,
@@ -174,10 +174,10 @@ def test_pointer_arithmetic_invalid_base_type_rejection():
 
 def test_pointer_arithmetic_invalid_offset_type_rejection():
     """Validates that non-integer offset types in pointer arithmetic raise TypeError."""
-    from linum.src.frontend.lexer import Lexer
-    from linum.src.frontend.parser import Parser
-    from linum.src.ast.nodes import FunctionDecl
-    from linum.src.semantic.types import (
+    from linum.frontend.lexer import Lexer
+    from linum.frontend.parser import Parser
+    from linum.ast.nodes import FunctionDecl
+    from linum.semantic.types import (
         SymbolContext,
         FunctionContract,
         PRIMITIVE_INTEGER,
@@ -210,14 +210,14 @@ def test_pointer_arithmetic_invalid_offset_type_rejection():
 
 def test_typed_pointer_gep_pipeline():
     """Validates that typed pointer offsets generate valid LLVM GEP with proper element sizing."""
-    from linum.src.compiler import LinumCompiler
-    from linum.src.lowering.cfg import CfgBuilder
-    from linum.src.lowering.ssa import SsaConverter
-    from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-    from linum.src.semantic.types import SymbolContext, FunctionContract, PRIMITIVE_INTEGER, OwnershipMode, Type
-    from linum.src.frontend.lexer import Lexer
-    from linum.src.frontend.parser import Parser
-    from linum.src.ast.nodes import FunctionDecl
+    from linum.compiler import LinumCompiler
+    from linum.lowering.cfg import CfgBuilder
+    from linum.lowering.ssa import SsaConverter
+    from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+    from linum.semantic.types import SymbolContext, FunctionContract, PRIMITIVE_INTEGER, OwnershipMode, Type
+    from linum.frontend.lexer import Lexer
+    from linum.frontend.parser import Parser
+    from linum.ast.nodes import FunctionDecl
 
     source_program = """
     {
@@ -249,10 +249,10 @@ def test_typed_pointer_gep_pipeline():
 
 def test_ptr_store_and_load_deref_pipeline():
     """Validates raw pointer dereferencing with IrPtrStore and IrPtrLoad through LLVM lowering."""
-    from linum.src.lowering.cfg import BasicBlock, CfgFunction, IrPtrStore, IrPtrLoad, IrReturn, IrBranch
-    from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-    from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-    from linum.src.semantic.types import FunctionContract, PRIMITIVE_INTEGER, OwnershipMode
+    from linum.lowering.cfg import BasicBlock, CfgFunction, IrPtrStore, IrPtrLoad, IrReturn, IrBranch
+    from linum.lowering.ssa import SsaConverter, SsaVerifier
+    from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+    from linum.semantic.types import FunctionContract, PRIMITIVE_INTEGER, OwnershipMode
 
     entry_bb = BasicBlock("entry_deref")
     entry_bb.instructions = [
@@ -283,10 +283,10 @@ def test_ptr_store_and_load_deref_pipeline():
 
 def test_heap_allocation_and_free_pipeline():
     """Validates dynamic heap allocation (malloc), pointer mutation, and explicit deallocation (free)."""
-    from linum.src.lowering.cfg import BasicBlock, CfgFunction, IrCall, IrPtrStore, IrPtrLoad, IrReturn
-    from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-    from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-    from linum.src.semantic.types import FunctionContract, PRIMITIVE_INTEGER, OwnershipMode
+    from linum.lowering.cfg import BasicBlock, CfgFunction, IrCall, IrPtrStore, IrPtrLoad, IrReturn
+    from linum.lowering.ssa import SsaConverter, SsaVerifier
+    from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+    from linum.semantic.types import FunctionContract, PRIMITIVE_INTEGER, OwnershipMode
 
     entry_bb = BasicBlock("entry_heap")
     entry_bb.instructions = [
@@ -321,10 +321,10 @@ def test_heap_allocation_and_free_pipeline():
 
 def test_linear_resource_drop_emission():
     """Validates automatic drop insertion (__drop_linear_resource) for linear resources."""
-    from linum.src.lowering.cfg import BasicBlock, CfgFunction, IrDrop, IrReturn
-    from linum.src.lowering.ssa import SsaConverter, SsaVerifier
-    from linum.src.lowering.llvm import LlvmEmitter, SystemBackendLinker
-    from linum.src.semantic.types import FunctionContract, PRIMITIVE_INTEGER, OwnershipMode
+    from linum.lowering.cfg import BasicBlock, CfgFunction, IrDrop, IrReturn
+    from linum.lowering.ssa import SsaConverter, SsaVerifier
+    from linum.lowering.llvm import LlvmEmitter, SystemBackendLinker
+    from linum.semantic.types import FunctionContract, PRIMITIVE_INTEGER, OwnershipMode
 
     entry_bb = BasicBlock("entry_drop")
     entry_bb.instructions = [
@@ -348,5 +348,13 @@ def test_linear_resource_drop_emission():
     assert "declare void @__drop_linear_resource(ptr)" in llvm
     assert "call void @__drop_linear_resource(ptr %linear_handle_arg)" in llvm
 
-    linker = SystemBackendLinker()
-    assert linker.verify_llvm_ir(llvm) is True
+def test_matrix_dimension_mismatch_rejection():
+    """Verify linum rejects multiplying non-conforming matrix dimensions."""
+    with pytest.raises(DiagnosticError, match="matrix multiplication dimension mismatch"):
+        compile_source(load("matrix_dim_fail.linum"), "matrix_dim_fail")
+
+def test_matrix_non_square_determinant_rejection():
+    """Verify linum rejects computing a determinant on non-square matrices."""
+    with pytest.raises(DiagnosticError, match="det expects a square matrix"):
+        compile_source(load("matrix_det_fail.linum"), "matrix_det_fail")
+

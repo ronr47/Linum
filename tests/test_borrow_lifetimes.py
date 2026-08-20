@@ -1,7 +1,7 @@
 import pytest
-from src.ast.nodes import FunctionContract, BlockStmt, LetStmt, IdentifierExpr, FunctionDecl
-from src.semantic.types import SymbolContext, StructType, PRIMITIVE_INTEGER, OwnershipMode
-from src.ast.borrow import BorrowStmt
+from linum.ast.nodes import FunctionContract, BlockStmt, LetStmt, IdentifierExpr, FunctionDecl
+from linum.semantic.types import SymbolContext, StructType, PRIMITIVE_INTEGER, OwnershipMode
+from linum.ast.borrow import BorrowStmt
 
 def test_aliasing_exclusivity_enforcement():
     """Verifies compile-time validation block rejects overlapping exclusive borrows."""
@@ -19,18 +19,18 @@ def test_aliasing_exclusivity_enforcement():
     ctx = SymbolContext()
     ctx.bind("target", struct_type, OwnershipMode.COPY)
     
-    from src.semantic.errors import NeuroSymbolicDiagnosticError
+    from linum.semantic.errors import NeuroSymbolicDiagnosticError
     with pytest.raises(NeuroSymbolicDiagnosticError, match="Aliasing violation"):
         ast_func.check_contract(ctx)
 
 def test_full_pipeline_borrow_lowering():
     """Validates that valid reference lifetimes pass lowering, SSA transformation, and LLVM emission."""
-    from src.ast.nodes import BlockStmt, LetStmt, IdentifierExpr, FunctionDecl, FunctionContract, ReturnStmt
-    from src.semantic.types import SymbolContext, StructType, PRIMITIVE_INTEGER, OwnershipMode
-    from src.ast.borrow import BorrowStmt
-    from src.lowering.cfg import CfgBuilder
-    from src.lowering.ssa import SsaConverter
-    from src.lowering.llvm import LlvmEmitter
+    from linum.ast.nodes import BlockStmt, LetStmt, IdentifierExpr, FunctionDecl, FunctionContract, ReturnStmt
+    from linum.semantic.types import SymbolContext, StructType, PRIMITIVE_INTEGER, OwnershipMode
+    from linum.ast.borrow import BorrowStmt
+    from linum.lowering.cfg import CfgBuilder
+    from linum.lowering.ssa import SsaConverter
+    from linum.lowering.llvm import LlvmEmitter
 
     struct_type = StructType("ValContainer", {"data": PRIMITIVE_INTEGER})
     contract = FunctionContract("full_pipeline_test", (), PRIMITIVE_INTEGER, OwnershipMode.COPY)

@@ -1,0 +1,8 @@
+{
+  "version": "1.0.0-PROD",
+  "axioms": {
+    "zero_drift": true,
+    "avx512_aligned": true,
+    "temporal_splices": "enabled"
+  }
+}

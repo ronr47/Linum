@@ -1,8 +1,8 @@
 import pytest
-from src.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
-from src.semantic.types import SymbolContext, PRIMITIVE_BOOLEAN, OwnershipMode
-from src.semantic.errors import NeuroSymbolicDiagnosticError
-from src.ast.topological import BraidGeneratorStmt
+from linum.ast.nodes import FunctionContract, BlockStmt, IdentifierExpr, FunctionDecl, ReturnStmt, LetStmt
+from linum.semantic.types import SymbolContext, PRIMITIVE_BOOLEAN, OwnershipMode
+from linum.semantic.errors import NeuroSymbolicDiagnosticError
+from linum.ast.topological import BraidGeneratorStmt
 
 def test_valid_braid_sequence_compilation():
     """Validates that a structurally sound geometry mapping passes anyon crossing criteria."""

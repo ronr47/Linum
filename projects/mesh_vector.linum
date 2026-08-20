@@ -1,0 +1,6 @@
+{
+    let base_ptr: ptr = %uninit_stub;
+    let factor: COPY = %val_42;
+    let computed: ptr = base_ptr + factor;
+    return factor;
+}

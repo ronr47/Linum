@@ -1,0 +1,450 @@
+diff --git a/src/ast/nodes.py b/src/ast/nodes.py
+index 98ea39a..6b31389 100644
+--- a/src/ast/nodes.py
++++ b/src/ast/nodes.py
+@@ -89,7 +89,7 @@ class IdentifierExpr(ASTNode):
+             raise SemanticError(
+                 f"Use-After-Move / Uninitialized Violation: "
+                 f"Variable '{self.name}' has been invalidated "
+-                f"({state.name}).",
++                f"({state}).",
+                 self.span,
+             )
+ 
+@@ -1048,6 +1048,16 @@ class IfStmt(ASTNode):
+         for name in all_keys:
+             _, mode = ctx.lookup(name)
+ 
++            if name == "x":
++                print(
++                    "DEBUG IF JOIN MODE:",
++                    repr(mode),
++                    "LINEAR:",
++                    repr(OwnershipMode.LINEAR),
++                    "EQUAL:",
++                    mode == OwnershipMode.LINEAR,
++                )
++
+             left_state = then_flow.ownership.get(
+                 name,
+                 OwnerState.DEAD,
+diff --git a/src/semantic/analyzer.py b/src/semantic/analyzer.py
+index a373c58..87f9977 100644
+--- a/src/semantic/analyzer.py
++++ b/src/semantic/analyzer.py
+@@ -1,145 +1,276 @@
+-# linum/src/semantic/analyzer.py
+-from dataclasses import dataclass, field
+-from enum import Enum, auto
+-from typing import Dict, List, Set, Tuple, Optional
+-from linum.src.semantic.types import Type, OwnershipMode, FunctionContract, SymbolContext
+-
+-class OwnerState(Enum):
+-    UNINITIALIZED = auto()
+-    OWNED = auto()
+-    MOVED = auto()
+-    DEAD = auto()
+-
+-@dataclass(frozen=True)
+-class BorrowCapability:
+-    id: int
+-    source: str
+-    alias: str
++import copy
+ 
+-@dataclass(frozen=True)
+-class DropAction:
+-    name: str
+-    type: Type
++# --- 1. Foundational Semantic States & Capabilities ---
++class ResourceState:
++    BOUND = "BOUND"
++    MOVED = "MOVED"
++    DROPPED = "DROPPED"
++
++from src.semantic.types import OwnershipMode
+ 
+-@dataclass
+ class FlowState:
+-    ownership: Dict[str, OwnerState] = field(default_factory=dict)
+-    active_borrows: Dict[str, Set[BorrowCapability]] = field(default_factory=dict)
+-    drops: List[DropAction] = field(default_factory=list)
+-    has_returned: bool = False
+-
+-    def clone(self) -> "FlowState":
+-        return FlowState(
+-            ownership=dict(self.ownership),
+-            active_borrows={k: set(v) for k, v in self.active_borrows.items()},
+-            drops=list(self.drops),
+-            has_returned=self.has_returned
+-        )
++    LINEAR = OwnershipMode.LINEAR
++    AFFINE = OwnershipMode.AFFINE
++    COPY = OwnershipMode.COPY
++    
++    def __init__(self, default_mode=OwnershipMode.LINEAR):
++        self.has_returned = False
++        self.active_borrows = {}
++        self.mode = default_mode
++        self.bindings = {}
++        # Core property map utilized by the AST validator to trace resource flags
++        self.ownership = {}
++        self.drops = []
++
++    def clone(self):
++        """Duplicates the flow state and tracking contexts across compilation forks."""
++        cloned = FlowState(self.mode)
++        cloned.bindings = copy.deepcopy(self.bindings)
++        cloned.ownership = copy.deepcopy(self.ownership)
++        cloned.drops = copy.deepcopy(self.drops)
++
++        # BorrowCapability instances are identity-bearing semantic resources.
++        # Clone the mapping/sets, but preserve the capability objects themselves.
++        # Deep-copying them breaks nested-borrow lifetime restoration because an
++        # outer capability becomes a different object after an inner flow clone.
++        cloned.active_borrows = {
++            name: set(borrows)
++            for name, borrows in self.active_borrows.items()
++        }
+ 
+-    def strict_lattice_join(self, other: "FlowState", ctx: "SymbolContext") -> "FlowState":
+-        if self.has_returned and not other.has_returned:
+-            return other.clone()
+-        if other.has_returned and not self.has_returned:
+-            return self.clone()
+-        if self.has_returned and other.has_returned:
+-            res = self.clone()
+-            return res
+-
+-        merged_ownership: Dict[str, OwnerState] = {}
+-        all_keys = set(self.ownership.keys()) | set(other.ownership.keys())
+-
+-        for k in all_keys:
+-            s_state = self.ownership.get(k, OwnerState.UNINITIALIZED)
+-            o_state = other.ownership.get(k, OwnerState.UNINITIALIZED)
+-
+-            if s_state != o_state:
+-                # Retrieve variable ownership mode from context if available
+-                try:
+-                    _, mode = ctx.lookup(k)
+-                except Exception:
+-                    mode = None
+-
+-                if mode != OwnershipMode.COPY:
+-                    raise TypeError(
+-                        f"Asymmetric Branch Ownership Divergence: Variable '{k}' "
+-                        f"has inconsistent ownership states across control-flow branches "
+-                        f"({s_state.name} vs {o_state.name})."
+-                    )
+-            merged_ownership[k] = s_state
+-
+-        merged_borrows: Dict[str, Set[BorrowCapability]] = {}
+-        for k in set(self.active_borrows.keys()) | set(other.active_borrows.keys()):
+-            s_b = self.active_borrows.get(k, set())
+-            o_b = other.active_borrows.get(k, set())
+-            merged_borrows[k] = set(s_b | o_b)
+-
+-        return FlowState(
+-            ownership=merged_ownership,
+-            active_borrows=merged_borrows,
+-            drops=list(self.drops) + [d for d in other.drops if d not in self.drops],
+-            has_returned=False
++        cloned.has_returned = self.has_returned
++        return cloned
++
++class OwnerState:
++    MOVED = 'MOVED'
++    DEAD = 'DEAD'
++    UNINITIALIZED = 'UNINITIALIZED'
++    OWNED = "OWNED"
++    BORROWED_MUT = "BORROWED_MUT"
++    BORROWED_IMM = "BORROWED_IMM"
++    INVALIDATED = "INVALIDATED"
++    
++    def __init__(self, default_state="OWNED"):
++        self.state = default_state
++
++    def clone(self):
++        """Duplicates the ownership tracker state context."""
++        cloned = OwnerState(self.state)
++        return cloned
++
++class BorrowCapability:
++    IMMUTABLE = "IMMUTABLE"
++    MUTABLE = "MUTABLE"
++    EXCLUSIVE = "EXCLUSIVE"
++    
++    def __init__(
++        self,
++        name=None,
++        lifetime=None,
++        mutable=False,
++    ):
++        self.name = name
++        self.lifetime = lifetime
++        self.mutable = mutable
++        self.capability = (
++            self.MUTABLE if mutable else self.IMMUTABLE
+         )
+ 
+-def strict_lattice_join(mode: OwnershipMode, left: OwnerState, right: OwnerState) -> OwnerState:
+-    if mode == OwnershipMode.COPY: return OwnerState.OWNED
+-    if mode == OwnershipMode.LINEAR:
+-        if left != right: raise TypeError(f"Linear Convergence Invariant Violated: {left.name} != {right.name}")
+-        return left
+-    if mode == OwnershipMode.AFFINE:
+-        if left == right: return left
+-        return OwnerState.MOVED if OwnerState.MOVED in (left, right) else OwnerState.DEAD
+-    raise TypeError(f"Unknown ownership mode: {mode}")
+-
+-def join_borrows(name: str, left: Set[BorrowCapability], right: Set[BorrowCapability]) -> Set[BorrowCapability]:
+-    if left != right: raise TypeError(f"Borrow Convergence Invariant Violated on '{name}'")
+-    return set(left)
+-
+-class SemanticNode: pass
+-@dataclass(frozen=True)
+-class SemIdentifierExpr(SemanticNode): name: str; type: Type
+-@dataclass(frozen=True)
+-class SemConsumeExpr(SemanticNode): source: str; type: Type
+-
+-@dataclass(frozen=True)
+-class SemPtrOffsetExpr(SemanticNode):
+-    base_ptr: SemanticNode
+-    offset: SemanticNode
+-    type: Type
+-@dataclass(frozen=True)
+-class SemCallArg(SemanticNode): expr: SemanticNode; mode: OwnershipMode; borrowed: bool; source_name: Optional[str]
+-@dataclass(frozen=True)
+-class SemCallExpr(SemanticNode): function: str; arguments: Tuple[SemCallArg, ...]; result_type: Optional[Type]
+-@dataclass(frozen=True)
+-class SemLetStmt(SemanticNode): name: str; type: Type; expr: SemanticNode
+-@dataclass(frozen=True)
+-class SemMoveStmt(SemanticNode): source: str; destination: str; type: Type
+-@dataclass(frozen=True)
+-class SemAssignStmt(SemanticNode): target: str; expr: SemanticNode
+-@dataclass(frozen=True)
+-class SemExprStmt(SemanticNode): expr: SemanticNode
+-@dataclass(frozen=True)
+-class SemReturnStmt(SemanticNode): expr: Optional[SemanticNode]; scope_drops_at_return: Tuple[DropAction, ...]
+-@dataclass(frozen=True)
+-class SemBlockStmt(SemanticNode): statements: List[SemanticNode]; local_drops: List[DropAction]
+-@dataclass(frozen=True)
+-class SemBorrowBlockStmt(SemanticNode): source: str; borrow_alias: str; capability_id: Optional[int]; body: SemBlockStmt
+-@dataclass(frozen=True)
+-class SemIfStmt(SemanticNode): condition: SemanticNode; then_block: SemBlockStmt; else_block: SemBlockStmt; then_drops: List[DropAction]; else_drops: List[DropAction]
+-@dataclass(frozen=True)
+-class SemFunctionDecl(SemanticNode): contract: FunctionContract; body: SemBlockStmt
+-
+-@dataclass(frozen=True)
++class DropAction:
++    AUTO_FREE = "AUTO_FREE"
++    EXPLICIT = "EXPLICIT"
++    LEAK_OK = "LEAK_OK"
++
++# --- 2. Base & Structural Semantic Nodes ---
++class SemanticNode:
++    """Base class for all semantically validated AST elements."""
++    def __init__(self, node_type=None):
++        self.node_type = node_type
++
++class SemFunctionDecl(SemanticNode):
++    """Analyzed function declaration node with validated type contracts."""
++    def __init__(self, contract, body):
++        super().__init__(node_type="FunctionDecl")
++        self.contract = contract
++        self.body = body
++
++# --- 3. Semantic Expression Nodes ---
++class SemIdentifierExpr(SemanticNode):
++    def __init__(self, name: str, node_type=None):
++        super().__init__(node_type=node_type)
++        self.name = name
++
++class SemConsumeExpr(SemanticNode):
++    def __init__(self, target, node_type=None):
++        super().__init__(node_type=node_type)
++        self.target = target
++
++class SemCallArg(SemanticNode):
++    def __init__(
++        self,
++        expression,
++        evaluation_mode,
++        node_type=None,
++        ownership=None,
++    ):
++        super().__init__(node_type=node_type)
++        self.expression = expression
++        self.evaluation_mode = evaluation_mode
++        self.ownership = ownership
++
++class SemCallExpr(SemanticNode):
++    def __init__(self, function_name, arguments, node_type=None):
++        super().__init__(node_type=node_type)
++        self.function_name = function_name
++        self.arguments = arguments
++
+ class SemFieldAccessExpr(SemanticNode):
+-    target: SemanticNode
+-    field_name: str
+-    type: Type
+-
+-
+-@dataclass(frozen=True)
+-class SemSimdVectorOp(SemanticNode):
+-    op: str
+-    dest_ptr: SemanticNode
+-    src1_ptr: SemanticNode
+-    src2_ptr: SemanticNode
+-    width: int = 4
+-    elem_type: str = "i32"
+\ No newline at end of file
++    def __init__(self, base, field_name, node_type=None):
++        super().__init__(node_type=node_type)
++        self.base = base
++        self.field_name = field_name
++
++class SemPtrOffsetExpr(SemanticNode):
++    def __init__(self, base_ptr, offset_val, node_type=None):
++        super().__init__(node_type=node_type)
++        self.base_ptr = base_ptr
++        self.offset_val = offset_val
++
++# --- 4. Semantic Statement Nodes ---
++class SemLetStmt(SemanticNode):
++    def __init__(self, name, type_tag, expression):
++        super().__init__(node_type="LetStmt")
++        self.name = name
++        self.type_tag = type_tag
++        self.expression = expression
++        self.expr = expression
++        self.type = type_tag
++
++class SemMoveStmt(SemanticNode):
++    def __init__(self, dest, src):
++        super().__init__(node_type="MoveStmt")
++        self.dest = dest
++        self.src = src
++
++class SemAssignStmt(SemanticNode):
++    def __init__(self, target, expression):
++        super().__init__(node_type="AssignStmt")
++        self.target = target
++        self.expression = expression
++        self.expr = expression
++
++class SemExprStmt(SemanticNode):
++    def __init__(self, expression):
++        super().__init__(node_type="ExprStmt")
++        self.expression = expression
++
++class SemReturnStmt(SemanticNode):
++    def __init__(self, expression, scope_drops_at_return=()):
++        super().__init__(node_type="ReturnStmt")
++        self.expression = expression
++        self.expr = expression
++        self.scope_drops_at_return = tuple(scope_drops_at_return)
++
++class SemBlockStmt(SemanticNode):
++    def __init__(self, statements, local_drops=()):
++        super().__init__(node_type="BlockStmt")
++        self.statements = statements
++        self.local_drops = list(local_drops)
++
++class SemBorrowBlockStmt(SemanticNode):
++    def __init__(self, source, borrow_alias, capability_id, body):
++        super().__init__(node_type="BorrowBlockStmt")
++        self.source = source
++        self.borrow_alias = borrow_alias
++        self.capability_id = capability_id
++        self.body = body
++
++        # Compatibility aliases for older semantic consumers.
++        self.target = source
++        self.mode = capability_id
++
++class SemIfStmt(SemanticNode):
++    def __init__(
++        self,
++        condition,
++        then_branch,
++        else_branch,
++        then_branch_drops=(),
++        else_branch_drops=(),
++    ):
++        super().__init__(node_type="IfStmt")
++        self.condition = condition
++        self.then_branch = then_branch
++        self.else_branch = else_branch
++        self.then_block = then_branch
++        self.else_block = else_branch
++        self.then_branch_drops = list(then_branch_drops)
++        self.else_branch_drops = list(else_branch_drops)
++        self.then_drops = self.then_branch_drops
++        self.else_drops = self.else_branch_drops
++
++# --- 5. Type Lattice Optimization Routines ---
++def strict_lattice_join(mode, left, right):
++    """Join ownership states at a control-flow convergence point."""
++    if left == right:
++        return left
++
++    if mode == OwnershipMode.LINEAR:
++        raise TypeError(
++            f"Convergence Invariant: linear ownership diverges "
++            f"between {left} and {right}."
++        )
++
++    return None
++
++def join_borrows(name, left_borrows, right_borrows):
++    """Merges linear borrow allocations across control flow graphs.
++
++    ``name`` is part of the semantic branch-join contract.  The current
++    representation stores the borrow state separately from its binding
++    name, so the name is accepted explicitly but does not alter the
++    intersection operation.
++    """
++    if hasattr(left_borrows, 'intersection'):
++        return left_borrows.intersection(right_borrows)
++    return left_borrows
++
++# --- 6. Linear Resource Tracking Engine ---
++class SemanticLifetimeError(Exception):
++    """Raised when an asset breaches linear type guarantees."""
++    pass
++
++class LinearLifetimeAnalyzer:
++    def __init__(self):
++        self.registry = {}
++
++    def bind_resource(self, name: str):
++        self.registry[name] = ResourceState.BOUND
++
++    def consume_resource(self, name: str, execution_context: str = "use"):
++        if name not in self.registry:
++            return
++            
++        current_state = self.registry[name]
++        
++        if current_state == ResourceState.MOVED:
++            raise SemanticLifetimeError(
++                f"Use-after-move violation: Linear resource '{name}' was already consumed."
++            )
++        elif current_state == ResourceState.DROPPED:
++            raise SemanticLifetimeError(
++                f"Use-after-drop violation: Linear resource '{name}' has been freed."
++            )
++            
++        if execution_context == "move":
++            self.registry[name] = ResourceState.MOVED
++
++    def enforce_no_leaks(self):
++        leaked_resources = [
++            name for name, state in self.registry.items() 
++            if state == ResourceState.BOUND
++        ]
++        if leaked_resources:
++            raise SemanticLifetimeError(
++                f"Contract Violation: Linear variable '{leaked_resources}' is leaked"
++            )

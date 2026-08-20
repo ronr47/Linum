@@ -1,0 +1,6 @@
+{
+    let base_ptr: ptr = %uninit_stub;
+    let particle_offset: COPY = %val_42;
+    let computed_ptr: ptr = base_ptr + particle_offset;
+    return particle_offset;
+}
