@@ -1,0 +1,14 @@
+{
+  "author": "Ron",
+  "email": "tatulatu700@gmail.com",
+  "portfolio": "https://github.com/ronr47/Linum",
+  "title": "How to Build a High-Performance eBPF Network Monitor in Rust Using Aya and Linux XDP",
+  "summary": "Step-by-step production guide to compiling and deploying low-overhead eBPF packet monitors in pure Rust using Aya, hooked via XDP interfaces.",
+  "outline": [
+    "1. Kernel-Bypass Networking Concepts with Aya & eBPF",
+    "2. Environment & Toolchain Setup (bpf-linker, Rust nightly)",
+    "3. Writing the Kernel-Space XDP Packet Filter",
+    "4. Building the User-Space Daemon and Memory Ring Buffers",
+    "5. Live Throughput Benchmarks and Resource Teardown"
+  ]
+}

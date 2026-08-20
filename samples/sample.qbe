@@ -1,0 +1,6 @@
+data $fmt = { b "⚡ [QBE] Execution complete: Micro-IL native lowering verified.\n", b 0 }
+export function w $main() {
+@start
+    call $printf(l $fmt)
+    ret 0
+}
