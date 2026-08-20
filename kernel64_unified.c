@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 #define UART_COM1 0x3F8
+#define QEMU_EXIT_PORT 0x501
 
 static const char HEX_CHARS[] = "0123456789ABCDEF";
 
@@ -52,7 +53,6 @@ static void run_fiber_ebpf_jit(void) {
     uart_puts(" [+] [FIBER-1] Running Bare-Metal eBPF JIT Worker...\n");
     uint64_t t_start = rdtsc();
 
-    /* Native x86_64: mov $100, %eax; imul $42, %eax; xor $0xDEADBEEF, %eax; ret */
     uint8_t *p = jit_code_buffer;
     *p++ = 0xB8; *(uint32_t *)p = 100; p += 4;
     *p++ = 0x69; *p++ = 0xC0; *(uint32_t *)p = 42; p += 4;
@@ -108,7 +108,6 @@ static void run_fiber_tensor_simd(void) {
         tensor_buffer[i] = (uint32_t)(i + 1);
     }
 
-    /* Fixed-point scale pass: (elem * 5 + 1) / 2 == elem * 2.5 + 0.5 */
     for (int i = 0; i < 24; i++) {
         tensor_buffer[i] = ((tensor_buffer[i] * 5) + 1) / 2;
     }
@@ -158,4 +157,7 @@ void kmain64(void) {
     uart_puts("============================================================\n");
     uart_puts(" [✔] ALL 3 BARE-METAL RING-0 FIBERS COMPLETED SUCCESSFULLY\n");
     uart_puts("============================================================\n");
+
+    /* Signal QEMU isa-debug-exit device to shut down cleanly */
+    outb(QEMU_EXIT_PORT, 0x31);
 }
