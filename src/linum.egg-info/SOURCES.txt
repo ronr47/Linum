@@ -4,6 +4,7 @@ src/linum/c_auditor.py
 src/linum/cli.py
 src/linum/compiler.py
 src/linum/driver.py
+src/linum/mlir_emitter.py
 src/linum.egg-info/PKG-INFO
 src/linum.egg-info/SOURCES.txt
 src/linum.egg-info/dependency_links.txt
@@ -30,6 +31,7 @@ src/linum/lowering/cfg.py
 src/linum/lowering/ir.py
 src/linum/lowering/llvm.py
 src/linum/lowering/ssa.py
+src/linum/mlir/pipeline.py
 src/linum/semantic/__init__.py
 src/linum/semantic/analyzer.py
 src/linum/semantic/errors.py
@@ -45,6 +47,7 @@ tests/test_epistemic_crucible.py
 tests/test_frontend.py
 tests/test_future_ai_remedies.py
 tests/test_leak_sentinel.py
+tests/test_mesh_chaos.py
 tests/test_neuro_symbolic_verifier.py
 tests/test_p0_soundness.py
 tests/test_phi_type_convergence.py

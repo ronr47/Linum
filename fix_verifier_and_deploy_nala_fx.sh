@@ -181,7 +181,7 @@ def main(args: Optional[List[str]] = None) -> int:
 if __name__ == "__main__":
     sys.exit(main())
 PYEOF
-print("✔ Deployed Nala/Pixi-grade live progress matrix into CLI.")
+echo "✔ Deployed Nala/Pixi-grade live progress matrix into CLI."
 
 # 3. Synchronize package and execute Truth Gate
 python -m pip install -e . --no-deps --quiet

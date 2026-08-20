@@ -1,1 +1,3 @@
 linum
+linum_fastjit
+linum_lsp

@@ -188,7 +188,7 @@ def main(args: Optional[List[str]] = None) -> int:
 if __name__ == "__main__":
     sys.exit(main())
 PYEOF
-print("[+] Industrial CLI theme generated.")
+echo "[+] Industrial CLI theme generated."
 
 # 4. Reinstall and verify through Truth Gate
 python -m pip install -e . --no-deps --quiet
