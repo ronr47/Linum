@@ -1,9 +1,11 @@
-[workspace]
-members = [
-    "native/linum_cranelift",
-    "native/linum_ebpf_loader",
-    "native/linum_wasi",
-    "src/linum_fastjit",
-    "src/linum_lsp",
-]
-resolver = "2"
+[package]
+name = "safe_wrapper"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "safe_wrapper"
+crate-type = ["staticlib"]
+
+[dependencies]
+url = "2.5.8"
