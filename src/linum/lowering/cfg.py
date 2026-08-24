@@ -1,6 +1,6 @@
 # linum/src/lowering/cfg.py
 from dataclasses import dataclass, field
-from typing import Dict, List, Set, Tuple, Optional
+from typing import Any, Dict, List, Set, Tuple, Optional
 from linum.semantic.analyzer import SemFieldAccessExpr, SemanticNode, SemBlockStmt, SemLetStmt, SemAssignStmt, SemMoveStmt, SemExprStmt, SemReturnStmt, SemBorrowBlockStmt, SemIfStmt, SemIdentifierExpr, SemConsumeExpr, SemCallExpr, SemFunctionDecl, SemPtrOffsetExpr
 
 class IrInstruction: pass
@@ -24,7 +24,12 @@ class IrCondBranch(IrInstruction): cond_reg: str; then_label: str; else_label: s
 class IrReturn(IrInstruction): val_reg: Optional[str]
 
 @dataclass(frozen=True)
-class IrPtrOffset(IrInstruction): target_reg: str; base_ptr: str; offset_reg: str
+class IrPtrOffset(IrInstruction):
+    target_reg: str
+    base_ptr: str
+    offset_reg: str
+    operator: str = "+"
+
 
 @dataclass(frozen=True)
 class IrFieldOffset(IrInstruction): target_reg: str; base_ptr: str; field_offset: int; field_type: Any
@@ -67,14 +72,6 @@ class IrPtrStore(IrInstruction): value_reg: str; pointer_var: str
 
 class CfgBuilder:
     def __init__(self):
-        self.label_counter = 0
-
-    def alloc_label(self, prefix: str = 'bb') -> str:
-        label = f'{prefix}_{self.label_counter}'
-        self.label_counter += 1
-        return label
-
-    def __init__(self):
         self.blocks: Dict[str, BasicBlock] = {}
         self.current_bb: Optional[BasicBlock] = None
         self.bb_counter = 0
@@ -100,69 +97,177 @@ class CfgBuilder:
         entry_label = f"entry_{sem_decl.contract.name}"
         self.emit_block(entry_label)
         for param in sem_decl.contract.parameters:
-            self.emit_instr(IrAlloca(param.name, param.type.name))
+            if isinstance(param, tuple):
+                param = param[0]
+
+            ptype = param.type
+            if isinstance(ptype, tuple):
+                ptype = ptype[0]
+
+            self.emit_instr(IrAlloca(param.name, ptype.name))
             arg_reg = self.new_reg()
-            self.emit_instr(IrParam(arg_reg, param.name, param.type.name))
+            self.emit_instr(IrParam(arg_reg, param.name, ptype.name))
             self.emit_instr(IrStore(arg_reg, param.name))
         self.lower_statement(sem_decl.body, [])
         return CfgFunction(name=sem_decl.contract.name, entry_block=entry_label, blocks=dict(self.blocks))
     def lower_statement(self, node: SemanticNode, merge_stack: List[str]) -> None:
         cname = node.__class__.__name__
-        if cname in ('SemSimdVectorOp', 'SimdVectorOpStmt', 'SimdVectorOp'):
-            if hasattr(self, 'current_block') and self.current_block is not None:
-                self.current_block.instructions.append(node)
+
+        if cname in ("SemSimdVectorOp", "SimdVectorOpStmt", "SimdVectorOp"):
+            if self.current_bb is not None:
+                self.current_bb.instructions.append(node)
             return
-        if self.current_bb is not None and self.current_bb.terminator is not None: return
+
+        # No reachable insertion point remains after both control-flow paths
+        # terminate.
+        if self.current_bb is None:
+            return
+
+        if self.current_bb.terminator is not None:
+            return
+
         if isinstance(node, SemBlockStmt):
             for stmt in node.statements:
                 self.lower_statement(stmt, merge_stack)
-                if self.current_bb is not None and self.current_bb.terminator is not None: return
-            for drop in node.local_drops: self.emit_instr(IrDrop(drop.name, drop.type.name))
+
+                if self.current_bb is None:
+                    return
+
+                if self.current_bb.terminator is not None:
+                    return
+
+            for drop in node.local_drops:
+                self.emit_instr(IrDrop(drop.name, (drop.type[0] if isinstance(drop.type, tuple) else drop.type).name))
+
         elif isinstance(node, SemLetStmt):
             expr_reg = self.lower_expression(node.expr)
-            self.emit_instr(IrAlloca(node.name, node.type.name))
+            self.emit_instr(IrAlloca(node.name, ((node.type[0] if isinstance(node.type, tuple) else node.type)[0] if isinstance((node.type[0] if isinstance(node.type, tuple) else node.type), tuple) else (node.type[0] if isinstance(node.type, tuple) else node.type)).name))
             self.emit_instr(IrStore(expr_reg, node.name))
+
         elif isinstance(node, SemAssignStmt):
             expr_reg = self.lower_expression(node.expr)
             self.emit_instr(IrStore(expr_reg, node.target))
+
         elif isinstance(node, SemMoveStmt):
             tmp_reg = self.new_reg()
             self.emit_instr(IrLoad(tmp_reg, node.source))
             self.emit_instr(IrStore(tmp_reg, node.destination))
-        elif isinstance(node, SemExprStmt): self.lower_expression(node.expr)
+
+        elif isinstance(node, SemExprStmt):
+            self.lower_expression(node.expr)
+
         elif node.__class__.__name__ == "PtrStoreStmt":
             val_reg = self.lower_expression(node.value_expr)
-            ptr_name = node.pointer_expr.name if hasattr(node.pointer_expr, "name") else str(node.pointer_expr)
-            self.emit_instr(IrPtrStore(value_reg=val_reg, pointer_var=ptr_name))
+            ptr_name = (
+                node.pointer_expr.name
+                if hasattr(node.pointer_expr, "name")
+                else str(node.pointer_expr)
+            )
+            self.emit_instr(
+                IrPtrStore(
+                    value_reg=val_reg,
+                    pointer_var=ptr_name,
+                )
+            )
+
         elif isinstance(node, SemReturnStmt):
-            ret_reg = self.lower_expression(node.expr) if node.expr is not None else None
-            for drop in node.scope_drops_at_return: self.emit_instr(IrDrop(drop.name, drop.type.name))
+            ret_reg = (
+                self.lower_expression(node.expr)
+                if node.expr is not None
+                else None
+            )
+
+            for drop in node.scope_drops_at_return:
+                self.emit_instr(IrDrop(drop.name, (drop.type[0] if isinstance(drop.type, tuple) else drop.type).name))
+
             self.emit_instr(IrReturn(ret_reg))
+
+            # This path is now unreachable.
+            self.current_bb = None
+
         elif isinstance(node, SemBorrowBlockStmt):
-            self.emit_instr(IrAlloca(node.borrow_alias, "REFERENCE"))
+            source = getattr(node, "source", None)
+            alias = getattr(node, "borrow_alias", None)
+
+            if source is None:
+                source = getattr(node, "name", None)
+
+            if alias is None:
+                alias = getattr(node, "alias", None)
+
+            if not source or not alias:
+                raise ValueError(
+                    "Malformed SemBorrowBlockStmt: expected source and "
+                    "borrow_alias"
+                )
+
+            self.emit_instr(IrAlloca(alias, "REFERENCE"))
+
             tmp_reg = self.new_reg()
-            self.emit_instr(IrLoad(tmp_reg, node.source))
-            self.emit_instr(IrStore(tmp_reg, node.borrow_alias))
+            self.emit_instr(IrLoad(tmp_reg, source))
+            self.emit_instr(IrStore(tmp_reg, alias))
+
             self.lower_statement(node.body, merge_stack)
+
         elif isinstance(node, SemIfStmt):
             cond_reg = self.lower_expression(node.condition)
+
             then_label = self.new_label("then")
             else_label = self.new_label("else")
             merge_label = self.new_label("if_merge")
-            self.emit_instr(IrCondBranch(cond_reg, then_label, else_label))
+
+            self.emit_instr(
+                IrCondBranch(
+                    cond_reg,
+                    then_label,
+                    else_label,
+                )
+            )
+
+            # THEN
             self.emit_block(then_label)
-            self.lower_statement(node.then_block, merge_stack + [merge_label])
-            then_has_term = self.current_bb.terminator is not None
+            self.lower_statement(
+                node.then_block,
+                merge_stack + [merge_label],
+            )
+
+            then_bb = self.current_bb
+            then_has_term = (
+                then_bb is None
+                or then_bb.terminator is not None
+            )
+
             if not then_has_term:
-                for drop in node.then_drops: self.emit_instr(IrDrop(drop.name, drop.type.name))
+                for drop in node.then_drops:
+                    self.emit_instr(IrDrop(drop.name, (drop.type[0] if isinstance(drop.type, tuple) else drop.type).name))
+
                 self.emit_instr(IrBranch(merge_label))
+
+            # ELSE
             self.emit_block(else_label)
-            self.lower_statement(node.else_block, merge_stack + [merge_label])
-            else_has_term = self.current_bb.terminator is not None
+            self.lower_statement(
+                node.else_block,
+                merge_stack + [merge_label],
+            )
+
+            else_bb = self.current_bb
+            else_has_term = (
+                else_bb is None
+                or else_bb.terminator is not None
+            )
+
             if not else_has_term:
-                for drop in node.else_drops: self.emit_instr(IrDrop(drop.name, drop.type.name))
+                for drop in node.else_drops:
+                    self.emit_instr(IrDrop(drop.name, (drop.type[0] if isinstance(drop.type, tuple) else drop.type).name))
+
                 self.emit_instr(IrBranch(merge_label))
-            if not (then_has_term and else_has_term): self.emit_block(merge_label)
+
+            # Both paths terminate.  There is no reachable merge point.
+            if then_has_term and else_has_term:
+                self.current_bb = None
+            else:
+                self.emit_block(merge_label)
+
     def lower_expression(self, node: SemanticNode) -> str:
         reg = self.new_reg()
         if isinstance(node, SemIdentifierExpr): self.emit_instr(IrLoad(reg, node.name))
@@ -176,9 +281,9 @@ class CfgBuilder:
             self.emit_instr(IrStore(src_reg="0", dest_var=reg.lstrip('%')))
         elif isinstance(node, SemFieldAccessExpr):
             base_reg = self.lower_expression(node.target)
-            offset = getattr(node.target.type, 'get_field_offset', lambda f: 0)(node.field_name)
+            offset = getattr((node.target.type[0] if isinstance(node.target.type, tuple) else node.target.type), 'get_field_offset', lambda f: 0)(node.field_name)
             addr_reg = self.new_reg()
-            self.emit_instr(IrFieldOffset(target_reg=addr_reg, base_ptr=base_reg, field_offset=offset, field_type=node.type))
+            self.emit_instr(IrFieldOffset(target_reg=addr_reg, base_ptr=base_reg, field_offset=offset, field_type=(node.type[0] if isinstance(node.type, tuple) else node.type)))
             self.emit_instr(IrPtrLoad(target_reg=reg, pointer_var=addr_reg))
             return reg
         elif isinstance(node, SemPtrOffsetExpr):
@@ -189,6 +294,7 @@ class CfgBuilder:
                     target_reg=reg,
                     base_ptr=base_reg,
                     offset_reg=offset_reg,
+                    operator=node.operator,
                 )
             )
             return reg
@@ -225,56 +331,108 @@ class LiveVariableAnalyzer:
         self.uses: Dict[str, Set[str]] = {lbl: set() for lbl in cfg.blocks}
         self._compute_local_sets()
 
-    def _extract_vars(self, s: Optional[str]) -> List[str]:
-        if not s or not s.startswith("%"): return []
-        return [s.lstrip('%').split('.')[0].split('_')[0]]
+    def _extract_vars(self, value: Optional[str]) -> List[str]:
+        """
+        Lossless IR identifier extraction.
+
+        SSA registers are represented as %name.  Never split identifiers on
+        '_' or '.', because those characters are legal parts of generated
+        resource names and truncating them aliases distinct lifetimes.
+        """
+        if not value or not isinstance(value, str):
+            return []
+
+        if value.startswith("%"):
+            name = value[1:]
+            return [name] if name else []
+
+        return []
 
     def _compute_local_sets(self) -> None:
+        """
+        Compute block-local SSA def/use sets.
+
+        Source variables and SSA registers are intentionally kept distinct:
+          source variable -> use by IrLoad / destination of IrStore
+          %register      -> definition/use according to SSA dataflow
+
+        Pointer operations participate explicitly in liveness.
+        """
         for lbl, bb in self.cfg.blocks.items():
+            defs = self.defs[lbl]
+            uses = self.uses[lbl]
+
+            def add_use(value):
+                for name in self._extract_vars(value):
+                    if name not in defs:
+                        uses.add(name)
+
+            def add_def(value):
+                for name in self._extract_vars(value):
+                    defs.add(name)
+
             for instr in bb.instructions:
-                # Process instruction-specific defs and uses
                 if isinstance(instr, IrLoad):
-                    srcs = self._extract_vars(instr.src_var)
-                    for src in srcs:
-                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
-                    t_regs = self._extract_vars(instr.target_reg)
-                    for t in t_regs: self.defs[lbl].add(t)
+                    # Source variable is consumed, target is defined.
+                    add_use(
+                        instr.src_var
+                        if isinstance(instr.src_var, str)
+                        and instr.src_var.startswith("%")
+                        else None
+                    )
+                    add_def(instr.target_reg)
+
                 elif isinstance(instr, IrStore):
-                    srcs = self._extract_vars(instr.src_reg)
-                    for src in srcs:
-                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
-                    d_vars = self._extract_vars(instr.dest_var)
-                    for d in d_vars:
-                        if "." in instr.dest_var or "_" in instr.dest_var:
-                            self.defs[lbl].add(d)
-                        else:
-                            if d not in self.defs[lbl]: self.uses[lbl].add(d)
+                    # src_reg is SSA input.
+                    add_use(instr.src_reg)
+
+                    # dest_var is a source-level storage location.  It is not
+                    # an SSA register unless explicitly represented as %name.
+                    add_def(
+                        instr.dest_var
+                        if isinstance(instr.dest_var, str)
+                        and instr.dest_var.startswith("%")
+                        else None
+                    )
+
                 elif isinstance(instr, IrParam):
-                    t_regs = self._extract_vars(instr.target_reg)
-                    for t in t_regs: self.defs[lbl].add(t)
+                    add_def(instr.target_reg)
+
                 elif isinstance(instr, IrCall):
                     if instr.target_reg:
-                        t_regs = self._extract_vars(instr.target_reg)
-                        for t in t_regs: self.defs[lbl].add(t)
-                    for arg in getattr(instr, "args_regs", ()):
-                        srcs = self._extract_vars(str(arg))
-                        for src in srcs:
-                            if src not in self.defs[lbl]: self.uses[lbl].add(src)
-                elif isinstance(instr, IrDrop):
-                    srcs = self._extract_vars(instr.var_name)
-                    for src in srcs:
-                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                        add_def(instr.target_reg)
 
-            # Process block terminator uses
+                    for arg in getattr(instr, "args_regs", ()):
+                        add_use(str(arg))
+
+                elif isinstance(instr, IrDrop):
+                    add_use(instr.var_name)
+
+                elif isinstance(instr, IrPtrLoad):
+                    add_use(instr.pointer_var)
+                    add_def(instr.target_reg)
+
+                elif isinstance(instr, IrPtrStore):
+                    add_use(instr.value_reg)
+                    add_use(instr.pointer_var)
+
+                elif isinstance(instr, IrPtrOffset):
+                    add_use(instr.base_ptr)
+                    add_use(instr.offset_reg)
+                    add_def(instr.target_reg)
+
+                elif isinstance(instr, IrFieldOffset):
+                    add_use(instr.base_ptr)
+                    add_def(instr.target_reg)
+
+            # Terminator operands are uses.
             if bb.terminator:
                 if isinstance(bb.terminator, IrCondBranch):
-                    srcs = self._extract_vars(bb.terminator.cond_reg)
-                    for src in srcs:
-                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
-                elif isinstance(bb.terminator, IrReturn) and bb.terminator.val_reg:
-                    srcs = self._extract_vars(bb.terminator.val_reg)
-                    for src in srcs:
-                        if src not in self.defs[lbl]: self.uses[lbl].add(src)
+                    add_use(bb.terminator.cond_reg)
+
+                elif isinstance(bb.terminator, IrReturn):
+                    if bb.terminator.val_reg:
+                        add_use(bb.terminator.val_reg)
 
     def analyze_lifetimes(self) -> None:
         changed = True
@@ -294,59 +452,136 @@ class LiveVariableAnalyzer:
                     self.live_in[lbl] = new_in
                     changed = True
     def validate_use_after_live_range(self) -> None:
-        """Enforces strict non-lexical lifetimes, checking for uses after end-of-life."""
-        import re
-        
-        def is_bypass_target(name: str) -> bool:
-            # Bypass compiler-generated intermediate registers (e.g., r1, r2, r12)
-            if re.match(r"^r\d+$", name):
-                return True
-            # Bypass dynamic external stub parameters
-            if name in ("cond", "uninit", "val"):
-                return True
-            if any(k in name for k in ("stub", "reg", "val", "init", "next", "final")):
-                return True
-            return False
+        """
+        Validate SSA/source-resource liveness without heuristic identifier
+        bypasses.
 
+        Compiler-generated registers are not treated as magically live.
+        Their definitions and uses must appear in the IR dataflow.
+        """
         for lbl, bb in self.cfg.blocks.items():
             current_live = set(self.live_out[lbl])
-            
+
+            # Terminator operands are live immediately before the terminator.
             if bb.terminator:
-                if hasattr(bb.terminator, "cond_reg"):
-                    current_live.update(self._extract_vars(bb.terminator.cond_reg))
-                if hasattr(bb.terminator, "val_reg") and bb.terminator.val_reg:
-                    current_live.update(self._extract_vars(bb.terminator.val_reg))
+                if isinstance(bb.terminator, IrCondBranch):
+                    current_live.update(
+                        self._extract_vars(bb.terminator.cond_reg)
+                    )
+
+                elif (
+                    isinstance(bb.terminator, IrReturn)
+                    and bb.terminator.val_reg
+                ):
+                    current_live.update(
+                        self._extract_vars(bb.terminator.val_reg)
+                    )
 
             for instr in reversed(bb.instructions):
                 if isinstance(instr, IrLoad):
+                    # IrLoad defines an SSA register.  src_var is a
+                    # source-level storage location, not an SSA use.
                     for dest in self._extract_vars(instr.target_reg):
                         current_live.discard(dest)
+
                     for src in self._extract_vars(instr.src_var):
-                        if src not in current_live and not is_bypass_target(src):
-                            raise TypeError(f"Non-Lexical Lifetime Violation: Use of dead variable '{src}'")
                         current_live.add(src)
-                        
+
                 elif isinstance(instr, IrStore):
-                    for dest in self._extract_vars(instr.dest_var):
-                        if "." in instr.dest_var or "_" in instr.dest_var:
-                            current_live.discard(dest)
-                        else:
-                            current_live.add(dest)
                     for src in self._extract_vars(instr.src_reg):
-                        if src not in current_live and not is_bypass_target(src):
-                            raise TypeError(f"Non-Lexical Lifetime Violation: Source register '{src}' is dead")
                         current_live.add(src)
-                        
+
+                    for dest in self._extract_vars(instr.dest_var):
+                        current_live.discard(dest)
+
+                elif isinstance(instr, IrParam):
+                    for dest in self._extract_vars(instr.target_reg):
+                        current_live.discard(dest)
+
                 elif isinstance(instr, IrCall):
                     if instr.target_reg:
                         for dest in self._extract_vars(instr.target_reg):
                             current_live.discard(dest)
+
                     for arg in getattr(instr, "args_regs", ()):
                         for src in self._extract_vars(str(arg)):
-                            if src not in current_live and not is_bypass_target(src):
-                                raise TypeError(f"Non-Lexical Lifetime Violation: Call argument '{src}' is dead")
+                            if src not in current_live:
+                                raise TypeError(
+                                    "Non-Lexical Lifetime Violation: "
+                                    f"Call argument register '{src}' is dead"
+                                )
+
                             current_live.add(src)
-                            
+
+                elif isinstance(instr, IrPtrLoad):
+                    for dest in self._extract_vars(instr.target_reg):
+                        current_live.discard(dest)
+
+                    for ptr in self._extract_vars(instr.pointer_var):
+                        if ptr not in current_live:
+                            raise TypeError(
+                                "Non-Lexical Lifetime Violation: "
+                                f"Pointer '{ptr}' is dead"
+                            )
+
+                        current_live.add(ptr)
+
+                elif isinstance(instr, IrPtrStore):
+                    for value in self._extract_vars(instr.value_reg):
+                        if value not in current_live:
+                            raise TypeError(
+                                "Non-Lexical Lifetime Violation: "
+                                f"Pointer-store value register '{value}' is dead"
+                            )
+
+                        current_live.add(value)
+
+                    for ptr in self._extract_vars(instr.pointer_var):
+                        if ptr not in current_live:
+                            raise TypeError(
+                                "Non-Lexical Lifetime Violation: "
+                                f"Pointer '{ptr}' is dead"
+                            )
+
+                        current_live.add(ptr)
+
+                elif isinstance(instr, IrPtrOffset):
+                    for dest in self._extract_vars(instr.target_reg):
+                        current_live.discard(dest)
+
+                    for src in (
+                        instr.base_ptr,
+                        instr.offset_reg,
+                    ):
+                        for name in self._extract_vars(src):
+                            if name not in current_live:
+                                raise TypeError(
+                                    "Non-Lexical Lifetime Violation: "
+                                    f"Pointer operand '{name}' is dead"
+                                )
+
+                            current_live.add(name)
+
+                elif isinstance(instr, IrFieldOffset):
+                    for dest in self._extract_vars(instr.target_reg):
+                        current_live.discard(dest)
+
+                    for src in self._extract_vars(instr.base_ptr):
+                        if src not in current_live:
+                            raise TypeError(
+                                "Non-Lexical Lifetime Violation: "
+                                f"Field base '{src}' is dead"
+                            )
+
+                        current_live.add(src)
+
                 elif isinstance(instr, IrDrop):
                     for src in self._extract_vars(instr.var_name):
+                        if src not in current_live:
+                            raise TypeError(
+                                "Non-Lexical Lifetime Violation: "
+                                f"Drop of dead variable '{src}'"
+                            )
+
                         current_live.add(src)
+

@@ -1,0 +1,19 @@
+{
+    if %cond_reg {
+        let alpha_stream: INTEGER = %val_42;
+        if %cond_reg {
+            let core_resonance: INTEGER = %val_0;
+        } else {
+            let core_resonance: INTEGER = %val_99;
+        }
+    } else {
+        let beta_stream: INTEGER = %val_99;
+        if %cond_reg {
+            let secondary_harmony: INTEGER = %val_42;
+        } else {
+            let secondary_harmony: INTEGER = %val_0;
+        }
+    }
+
+    return %val_0;
+}
