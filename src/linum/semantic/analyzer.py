@@ -97,6 +97,18 @@ def join_borrows(name: str, left: Set[BorrowCapability], right: Set[BorrowCapabi
 class SemanticNode: pass
 @dataclass(frozen=True)
 class SemIdentifierExpr(SemanticNode): name: str; type: Type
+
+@dataclass(frozen=True)
+class SemIntLiteralExpr(SemanticNode):
+    value: int
+    type: Type
+
+@dataclass(frozen=True)
+class SemBinaryExpr(SemanticNode):
+    left: SemanticNode
+    right: SemanticNode
+    op: str
+    type: Type
 @dataclass(frozen=True)
 class SemConsumeExpr(SemanticNode): source: str; type: Type
 
@@ -104,7 +116,8 @@ class SemConsumeExpr(SemanticNode): source: str; type: Type
 class SemPtrOffsetExpr(SemanticNode):
     base_ptr: SemanticNode
     offset: SemanticNode
-    type: Type
+    operator: str = "+"
+    type: Type = None
 @dataclass(frozen=True)
 class SemCallArg(SemanticNode): expr: SemanticNode; mode: OwnershipMode; borrowed: bool; source_name: Optional[str]
 @dataclass(frozen=True)

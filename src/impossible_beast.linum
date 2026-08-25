@@ -1,0 +1,12 @@
+{
+    let ring_size: INTEGER = %val_42;
+    let tensor_dim: INTEGER = %val_99;
+    
+    if %cond_reg {
+        let result: INTEGER = %val_42;
+    } else {
+        let result: INTEGER = %val_99;
+    }
+    
+    return %val_0;
+}

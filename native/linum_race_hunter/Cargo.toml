@@ -1,0 +1,8 @@
+[package]
+name = "linum_race_hunter"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+libc = "0.2"
+nix = { version = "0.27", features = ["process", "signal", "sched"] }

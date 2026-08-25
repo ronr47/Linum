@@ -1,0 +1,12 @@
+@dataclass(frozen=True)
+class SemIntLiteralExpr(SemanticNode):
+    value: int
+    type: Type
+
+
+@dataclass(frozen=True)
+class SemBinaryExpr(SemanticNode):
+    left: SemanticNode
+    right: SemanticNode
+    op: str
+    type: Type

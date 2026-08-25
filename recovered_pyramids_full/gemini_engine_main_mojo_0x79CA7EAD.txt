@@ -1,0 +1,206 @@
+state=0 processor.max_cstate=0"
+EOF
+
+# 3. Neuter ACPI Throttling via Custom DSDT Table Upgrade
+echo "[3/5] Extracting, patching, and recompiling physical ACPI DSDT tables..."
+WORKSPACE=$(mktemp -d)
+cd "$WORKSPACE"
+
+# Dump system tables
+acpidump -b
+# Decompile the primary DSDT table resolving references across SSDTs
+iasl -e ssdt*.dat -d dsdt.dat
+
+# Generate python regex-patching utility via heredoc
+cat << "EOF" > patch_dsdt.py
+import re
+
+with open("dsdt.dsl", "r") as f:
+    content = f.read()
+
+# Force _PPC (Processor Performance Control) to always return 0 performance constraints
+content = re.sub(
+    r'Method\s+\(_PPC,\s+0,\s+(Serialized|NotSerialized)\)\s*\{[^}]*\}',
+    'Method (_PPC, 0, NotSerialized) { Return (0x00) }',
+    content
+)
+
+# Max out _PSV (Passive Thermal Throttling) to 125C (3982 tenths of Kelvin -> 0x0F8E)
+content = re.sub(
+    r'Method\s+\(_PSV,\s+0,\s+(Serialized|NotSerialized)\)\s*\{[^}]*\}',
+    'Method (_PSV, 0, NotSerialized) { Return (0x0F8E) }',
+    content
+)
+
+with open("dsdt.dsl", "w") as f:
+    f.write(content)
+print("DSDT internal loops successfully patched.")
+EOF
+
+python3 patch_dsdt.py
+
+# Recompile back into AML byte code
+iasl -sa dsdt.dsl
+
+# Construct the early-initramfs directory override layout
+mkdir -p kernel/firmware/acpi
+cp dsdt.aml kernel/firmware/acpi/dsdt.aml
+find kernel | cpio -H newc --create > /boot/custom_dsdt.aml
+
+# Integrate custom DSDT payload hook directly into Debian grub execution cycle
+cat << "EOF" > /etc/grub.d/01_acpi_override
+#!/bin/sh
+exec tail -n +3 $0
+# Custom early initrd injection hook for patched ACPI tables
+if [ -f /boot/custom_dsdt.aml ]; then
+    echo "  echo 'Loading custom DSDT table override...'"
+    echo "  initrd /boot/custom_dsdt.aml"
+fi
+EOF
+chmod +x /etc/grub.d/01_acpi_override
+
+# Force grub to regenerate its active boot definitions
+update-grub
+
+# 4. Generate the Mono-Language Mojo Performance Engine
+echo "[4/5] Scaffolding the Mojo high-performance vector computer engine..."
+mkdir -p /opt/gemini_engine
+cd /opt/gemini_engine
+
+cat << "EOF" > main.mojo
+from sys.ffi import DLHandle, Pointer
+from utils.index import Index
+
+alias O_RDONLY = 0
+alias SAMPLE_WINDOW = 4096
+
+@always_inline
+fn telemetry_decay_pad():
+    # Enforce strict serial dependencies to force the 3-wide out-of-order decoder 
+    # to process them sequentially, inducing time for the activity accumulator to drop.
+    var reg_a: UInt64 = 0x5555555555555555
+    reg_a = reg_a ^ 0xAAAAAAAAAAAAAAAA
+    reg_a = reg_a + 1
+    reg_a = reg_a << 3 | reg_a >> 61
+    reg_a = reg_a ^ 0xF0F0F0F0F0F0F0F0
+    asm("": : "r"(reg_a) : "memory")
+
+fn read_msr_native(core: Int, msr_address: UInt64) raises -> UInt64:
+    var libc = DLHandle("libc.so.6")
+    var open_fn = libc.get_function[fn(Pointer[UInt8], Int) -> Int32]("open")
+    var pread_fn = libc.get_function[fn(Int32, Pointer[UInt8], Int, Int64) -> Int64]("pread")
+    var close_fn = libc.get_function[fn(Int32) -> Int32]("close")
+
+    var path_str = "/dev/cpu/" + String(core) + "/msr"
+    var fd = open_fn(path_str.as_bytes().as_ptr(), O_RDONLY)
+    if fd < 0: raise Error("MSR descriptor access failed")
+
+    var buffer = Pointer[UInt8].alloc(8)
+    var bytes_read = pread_fn(fd, buffer, 8, Int64(msr_address))
+    _ = close_fn(fd)
+
+    if bytes_read != 8:
+        buffer.free()
+        raise Error("MSR read frame mismatch")
+
+    var value = buffer.bitcast[UInt64]().load()
+    buffer.free()
+    return value
+
+fn main() raises:
+    print("Initializing Uncapped Gemini Engine Execution Loop...")
+    
+    # Initialize baseline metrics
+    var last_aperf = read_msr_native(1, 0xE7)
+    var last_mperf = read_msr_native(1, 0xE8)
+    var intensity: Int = 0
+
+    # Test load block allocation simulation
+    var length = 1000000
+    var data = Pointer[Float32].alloc(length)
+    
+    # Initialize workload data
+    for i in range(length):
+        data.store(i, Float32(i))
+
+    # Core Execution Loop
+    var i = 0
+    while i < length:
+        # Micro-Sample Telemetry Boundary optimized to compile to a quick 'test edi, 0xFFF' mask
+        if i % SAMPLE_WINDOW == 0:
+            var current_aperf = read_msr_native(1, 0xE7)
+            var current_mperf = read_msr_native(1, 0xE8)
+            
+            var delta_a = current_aperf - last_aperf
+            var delta_m = current_mperf - last_mperf
+            
+            last_aperf = current_aperf
+            last_mperf = current_mperf
+            
+            if delta_m > 0:
+                var ratio = Float64(delta_a) / Float64(delta_m)
+                # PI feedback loop abstraction: scale instruction padding based on efficiency error
+                if ratio < 0.95:
+                    intensity = Int((0.95 - ratio) * 255.0) >> 5
+                else:
+                    intensity = 0
+
+        # High-Performance 128-bit Vector Processing Workload Block
+        var vector_data = data.load[width=4](i)
+        data.store[width=4](i, vector_data * 3.14159)
+
+        # Dynamic Camouflage Injection via Serial Control
+        if intensity > 0:
+            for _ in range(intensity):
+                telemetry_decay_pad()
+
+        i += 4
+
+    print("Computation complete with persistent zero-throttle baseline.")
+    data.free()
+EOF
+
+# Load raw hardware driver natively
+modprobe msr
+echo "msr" >> /etc/modules
+
+# Clean up temp workspace memory
+rm -rf "$WORKSPACE"
+
+echo "======================================================================"
+echo " Deployment Successful! "
+echo "======================================================================"
+echo "1. Reboot the machine now to commit Core Isolation and the ACPI table override."
+echo "2. After rebooting, run the following commands to compile and execute:"
+echo "   cd /opt/gemini_engine"
+echo "   mojo build main.mojo -O3 --target-cpu=native -o gemini_engine"
+echo "   sudo taskset -c 1 ./gemini_engine"
+echo "======================================================================"
+
+```
+
+---
+
+## Post-Execution Verification
+
+Once the script completes and you reboot the system, you can verify your low-level execution layers are functioning perfectly using these diagnostic checks:
+
+1. **Verify ACPI DSDT Overrides:**
+```bash
+dmesg | grep -i "ACPI: Table Upgrade"
+
+```
+
+
+*Expected output:* A confirmation line showing `override [DSDT-xxxxxx]` was successfully loaded from the early-initramfs package.
+2. **Verify CPU Core Isolation:**
+```bash
+cat /sys/devices/system/cpu/isolated
+
+```
+
+
+*Expected output:* `1`, confirming Core 1 is officially shielded from standard user-space and kernel thread distributions.
+y":"as","si":3327,"sm":{"lnks_link":null}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":7510,"ty":"as","si":3327,"sm":{"ts_un":false,"ts_un_i":false,"ts_sc":false,"ts_it_i":false,"ts_fgc2":{"hclr_color":"#000000","clr_type":0},"ts_st_i":true,"ts_bgc2":{"hclr_color":null,"clr_type":0},"ts_fs_i":true,"ts_ff_i":true,"ts_bgc2_i":true,"ts_it":false,"ts_va":"nor","ts_bd_i":false,"ts_va_i":true,"ts_fs":11,"ts_ff":"Arial","ts_st":false,"ts_bd":true,"ts_fgc2_i":true,"ts_sc_i":true,"ts_tw":400}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":3543,"ty":"as","si":3367,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":3564,"ty":"as","si":3544,"sm":{"ts_it":true,"ts_bd_i":false,"ts_it_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":3769,"ty":"as","si":3565,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":3781,"ty":"as","si":3770,"sm":{"ts_it":true,"ts_bd_i":false,"ts_it_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":3838,"ty":"as","si":3782,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":3968,"ty":"as","si":3844,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":3976,"ty":"as","si":3969,"sm":{"ts_it":true,"ts_bd_i":false,"ts_it_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":4208,"ty":"as","si":3977,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":4219,"ty":"as","si":4209,"sm":{"ts_it":true,"ts_bd_i":false,"ts_it_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":4390,"ty":"as","si":4220,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":4400,"ty":"as","si":4391,"sm":{"ts_it":true,"ts_bd_i":false,"ts_it_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":4422,"ty":"as","si":4401,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":4624,"ty":"as","si":4433,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":5274,"ty":"as","si":4670,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":5453,"ty":"as","si":5298,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":5551,"ty":"as","si":5507,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":5597,"ty":"as","si":5567,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":5616,"ty":"as","si":5615,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":5638,"ty":"as","si":5617,"sm":{"ts_un":true,"ts_un_i":false,"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":6022,"ty":"as","si":5639,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":6177,"ty":"as","si":6090,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":6432,"ty":"as","si":6190,"sm":{"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["text",1,"sct.2e0dxy90voiq"],{"st":"text","ei":6454,"ty":"as","si":6433,"sm":{"ts_un":true,"ts_un_i":false,"ts_bd_i":false,"ts_bd":false}}],["docs-nestedModel",["te
+e the 3-wide out-of-order decoder \n    # to process them sequentially, inducing time for the activity accumulator to drop.\n    var reg_a: UInt64 = 0x5555555555555555\n    reg_a = reg_a ^ 0xAAAAAAAAAAAAAAAA\n    reg_a = reg_a + 1\n    reg_a = reg_a << 3 | reg_a >> 61\n    reg_a = reg_a ^ 0xF0F0F0F0F0F0F0F0\n    asm(\"\": : \"r\"(reg_a) : \"memory\")\n\nfn read_msr_native(core: Int, msr_address: UInt64) raises -> UInt64:\n    var libc = DLHandle(\"libc.so.6\")\n    var open_fn = libc.get_function[fn(Pointer[UInt8], Int) -> Int32](\"open\")\n    var pread_fn = libc.get_function[fn(Int32, Pointer[UInt8], Int, Int64) -> Int64](\"pread\")\n    var close_fn = libc.get_function[fn(Int32) -> Int32](\"close\")\n\n    var path_str = \"/dev/cpu/\" + String(core) + \"/msr\"\n    var fd = open_fn(path_str.as_bytes().as_ptr(), O_RDONLY)\n    if fd < 0: raise Error(\"MSR descriptor access failed\")\n\n    var buffer = Pointer[UInt8].alloc(8)\n    var bytes_read = pread_fn(fd, buffer, 8, Int64(msr_address))\n    _ = close_fn(fd)\n\n    if bytes_read != 8:\n        buffer.free()\n        raise Error(\"MSR read frame mismatch\")\n\n    var value = buffer.bitcast[UInt64]().load()\n    buffer.free()\n    return value\n\nfn main() raises:\n    print(\"Initializing Uncapped Gemini Engine Execution Loop...\")\n    \n    # Initialize baseline metrics\n    var last_aperf = read_msr_native(1, 0xE7)\n    var last_mperf = read_msr_native(1, 0xE8)\n    var intensity: Int = 0\n\n    # Test load block allocation simulation\n    var length = 1000000\n    var data = Pointer[Float32].alloc(length)\n    \n    # Initialize workload data\n    for i in range(length):\n        data.store(i, Float32(i))\n\n    # Core Execution Loop\n    var i = 0\n    while i < length:\n        # Micro-Sample Telemetry Boundary optimized to compile to a quick 'test edi, 0xFFF' mask\n        if i % SAMPLE_WINDOW == 0:\n            var current_aperf = read_msr_native(1, 0xE7)\n            var cu
+"deities\" who sit in the high cou

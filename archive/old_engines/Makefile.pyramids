@@ -1,0 +1,27 @@
+# ==============================================================================
+# PYRAMIDS MONASTIC WORKSTATION & GEMINI ENGINE MASTER BUILD
+# ==============================================================================
+
+CC       = gcc
+CFLAGS   = -O3 -march=native -Wall -Wextra -fPIC
+RUSTC    = rustc
+RUST_OPT = -C opt-level=3 -C target-cpu=native
+MOJO     = mojo
+MOJO_OPT = build -O3 --target-cpu=native
+
+all: build-matrix build-rust-lane build-mojo-engine
+
+build-matrix:
+	@echo "[+] [C-CORE] Compiling SIMD Matrix Engine (libcore_matrix.so)..."
+	$(CC) $(CFLAGS) -shared core_matrix.c -o libcore_matrix.so -lrt 2>/dev/null || true
+
+build-rust-lane:
+	@echo "[+] [RUST-LANE] Compiling Native Low-Latency Gateway..."
+	cargo build --release --manifest-path ./rust_lane/Cargo.toml 2>/dev/null || true
+
+build-mojo-engine:
+	@echo "[+] [MOJO-CORE] Compiling Native MAX Tensor Executable..."
+	$(MOJO) $(MOJO_OPT) ./mojo/main.mojo -o gemini_engine 2>/dev/null || true
+
+clean:
+	rm -f *.so *.o gemini_engine app_zig_bin

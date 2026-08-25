@@ -64,6 +64,7 @@ class TypedIrPtrOffset(TypedIrInstruction):
     base_ptr: TypedReg
     offset_reg: TypedReg
     elem_type: Type = Type("i8", OwnershipMode.COPY)
+    operator: str = "+"
 
 @dataclass
 class TypedIrPtrLoad(TypedIrInstruction):

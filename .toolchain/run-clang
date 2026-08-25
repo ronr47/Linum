@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Linum Clang Native Proxy Wrapper
+
+if [ -f "$(dirname "$0")/env.sh" ]; then
+    source "$(dirname "$0")/env.sh"
+fi
+
+if [ -z "${LINUM_LLVM_BIN:-}" ]; then
+    echo "ERROR: LINUM_LLVM_BIN environment variable is unassigned." >&2
+    echo "Please execute 'source .toolchain/env.sh' before continuing." >&2
+    exit 1
+fi
+
+exec "${LINUM_LLVM_BIN}/clang" "$@"

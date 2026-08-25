@@ -1,0 +1,81 @@
+// ============================================================================
+// LINUM UNIFIED PIPELINE (KERNEL INGRESS + CACHE-ALIGNED SEQUENCER)
+// ============================================================================
+
+@align(64)
+struct WireFrame {
+    ingress_seq: u64,
+    accepted_seq: u64,
+    t0_ingress_ns: u64,
+    payload_len: u32,
+    client_ip: u32,
+    payload: [u8; 224],
+}
+
+// ----------------------------------------------------------------------------
+// Tier 1: In-Kernel Packet Filter (Target: eBPF / XDP)
+// ----------------------------------------------------------------------------
+
+@map(type: RingBuf, max_entries: 16777216)
+static PACKET_RING: RingBuf;
+
+@section("xdp")
+fn xdp_ingress_filter(ctx: *mut XdpMd): u32 {
+    let data_start: usize = ctx.data as usize;
+    let data_end: usize = ctx.data_end as usize;
+
+    // Direct Ethernet boundary verification
+    let eth_end: usize = data_start + 14;
+    if eth_end > data_end {
+        return 2; // XDP_PASS
+    }
+
+    // Direct IPv4 boundary verification
+    let ip_end: usize = eth_end + 20;
+    if ip_end > data_end {
+        return 2; // XDP_PASS
+    }
+
+    // Direct push to pre-allocated BPF Ring Buffer
+    let entry: *mut WireFrame = RingBuf::reserve(&PACKET_RING, sizeof(WireFrame));
+    if entry != 0 as *mut WireFrame {
+        entry.ingress_seq = bpf_ktime_get_ns();
+        entry.payload_len = 64;
+        RingBuf::submit(entry);
+    }
+
+    return 2; // XDP_PASS
+}
+
+// ----------------------------------------------------------------------------
+// Tier 2: User-Space Sequencer & Persistence Journal (Target: Native x86/ARM64)
+// ----------------------------------------------------------------------------
+
+@align(64)
+struct SpscRing {
+    write_idx: AtomicU64,
+    read_idx: AtomicU64,
+    slots: [WireFrame; 65536],
+}
+
+fn sequencer_worker(ring: *mut SpscRing, journal: *mut WireFrame) {
+    let mut journal_idx: u64 = 0;
+
+    while true {
+        let r: u64 = ring.read_idx.load(Ordering::Relaxed);
+        let w: u64 = ring.write_idx.load(Ordering::Acquire);
+
+        if r == w {
+            __cpu_pause();
+            continue;
+        }
+
+        // Lock-free circular write to pre-allocated journal buffer
+        let slot_idx: u64 = r & 65535;
+        let j_idx: u64 = journal_idx & 1048575;
+        journal[j_idx] = ring.slots[slot_idx];
+
+        journal_idx = journal_idx + 1;
+        ring.read_idx.store(r + 1, Ordering::Release);
+    }
+}

@@ -1,32 +1,29 @@
-OUTPUT_FORMAT("elf64-x86-64")
-OUTPUT_ARCH(i386:x86-64)
-ENTRY(_start64)
+ENTRY(_start)
 
-PHDRS {
-    text PT_LOAD FLAGS(5); /* Read + Execute (R-X) */
-    data PT_LOAD FLAGS(6); /* Read + Write   (RW-) */
-}
+SECTIONS
+{
+    . = 1M;
 
-SECTIONS {
-    . = 0x10000;
-
-    .text : {
-        *(.text.entry)
+    .text : ALIGN(4K) {
+        *(.multiboot_header)
         *(.text*)
+    }
+
+    .rodata : ALIGN(4K) {
         *(.rodata*)
-    } :text
+    }
 
-    . = ALIGN(4096);
-
-    .data : {
+    .data : ALIGN(64) {
         *(.data*)
-        *(.bss*)
+    }
+
+    .bss : ALIGN(64) {
         *(COMMON)
-    } :data
+        *(.bss*)
+    }
 
     /DISCARD/ : {
         *(.comment)
-        *(.note*)
-        *(.eh_frame*)
+        *(.eh_frame)
     }
 }

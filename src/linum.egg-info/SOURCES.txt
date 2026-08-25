@@ -19,6 +19,11 @@ src/linum/ast/regge.py
 src/linum/ast/simd.py
 src/linum/ast/spacetime.py
 src/linum/ast/topological.py
+src/linum/backends/__init__.py
+src/linum/backends/bpf.py
+src/linum/backends/native.py
+src/linum/backends/quantum.py
+src/linum/backends/registry.py
 src/linum/diagnostics/__init__.py
 src/linum/diagnostics/errors.py
 src/linum/diagnostics/semantic.py
@@ -32,6 +37,9 @@ src/linum/lowering/ir.py
 src/linum/lowering/llvm.py
 src/linum/lowering/ssa.py
 src/linum/mlir/pipeline.py
+src/linum/quantum/__init__.py
+src/linum/runtime/__init__.py
+src/linum/runtime/orchestrator.py
 src/linum/semantic/__init__.py
 src/linum/semantic/analyzer.py
 src/linum/semantic/errors.py

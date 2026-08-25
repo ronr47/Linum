@@ -87,7 +87,13 @@ class LlvmEmitter:
 
         inferred_types: Dict[str, str] = {}
         for v, t in var_types.items():
+            if isinstance(t, tuple):
+                t = t[0]
+            if isinstance(t, tuple):
+                t = t[0]
             clean_v = self._clean_name(v)
+            if isinstance(t, tuple):
+                t = t[0]
             inferred_types[clean_v] = self._type_to_llvm_str(t)
 
         changed = True

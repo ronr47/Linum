@@ -3,7 +3,8 @@ from linum.frontend.lexer import Token, TokenType
 from linum.ast.nodes import (
     CallExpr,
     ASTNode, BlockStmt, LetStmt, AssignStmt, MoveStmt, IfStmt,
-    ReturnStmt, BorrowBlockStmt, ExprStmt, IdentifierExpr, PtrOffsetExpr
+    ReturnStmt, BorrowBlockStmt, ExprStmt, IdentifierExpr,
+    PtrOffsetExpr, IntLiteralExpr, BinaryExpr
 )
 from linum.semantic.types import Type, OwnershipMode, PRIMITIVE_INTEGER, PRIMITIVE_BOOLEAN
 
@@ -47,41 +48,117 @@ class Parser:
         raise SyntaxError(f"Parser Error: Invalid type specification parsing token {tok.type}")
 
     def parse_expression(self) -> ASTNode:
+        """
+        Parse a Linum expression.
+
+        Supported forms here include:
+
+            identifier
+            %register
+            function(...)
+            base_ptr + integer_expression
+            base_ptr - integer_expression
+            lhs * rhs
+
+        Pointer arithmetic is represented explicitly as PtrOffsetExpr.
+        """
+
         tok = self.peek()
+
+        # ----------------------------------------------------
+        # Primary expression
+        # ----------------------------------------------------
         if tok.type == TokenType.REG:
             base_tok = self.consume(TokenType.REG)
-            expr = IdentifierExpr(name=base_tok.value, span=base_tok.span)
+            expr = IdentifierExpr(
+                name=base_tok.value,
+                span=base_tok.span,
+            )
+
         elif tok.type == TokenType.IDENTIFIER:
             base_tok = self.consume(TokenType.IDENTIFIER)
+
             if self.peek().type == TokenType.LPAREN:
                 self.consume(TokenType.LPAREN)
+
                 args = []
-                while self.peek().type != TokenType.RPAREN and self.peek().type != TokenType.EOF:
+
+                while (
+                    self.peek().type != TokenType.RPAREN
+                    and self.peek().type != TokenType.EOF
+                ):
                     args.append(self.parse_expression())
+
                     if self.peek().type == TokenType.COMMA:
                         self.consume(TokenType.COMMA)
+                    elif self.peek().type != TokenType.RPAREN:
+                        raise SyntaxError(
+                            "Parser Error: Expected ',' or ')' "
+                            f"after function argument at {self.peek().span}"
+                        )
+
                 self.consume(TokenType.RPAREN)
-                expr = CallExpr(function_name=base_tok.value, arguments=tuple(args))
+
+                expr = CallExpr(
+                    function_name=base_tok.value,
+                    arguments=tuple(args),
+                )
+
             else:
-                expr = IdentifierExpr(name=base_tok.value, span=base_tok.span)
+                expr = IdentifierExpr(
+                    name=base_tok.value,
+                    span=base_tok.span,
+                )
+
         else:
-            raise SyntaxError(f"Parser Error: Unexpected token in expression: {tok.type}")
+            raise SyntaxError(
+                "Parser Error: Unexpected token in expression: "
+                f"{tok.type} ('{tok.value}') at {tok.span}"
+            )
 
-        if self.peek().type in (TokenType.PLUS, TokenType.MINUS):
+        # ----------------------------------------------------
+        # Binary pointer arithmetic.
+        #
+        # IMPORTANT:
+        # Do not consume the right side as a raw token.
+        # Parse it as an expression so semantic checking receives
+        # a real AST node.
+        # ----------------------------------------------------
+        if self.peek().type in (
+            TokenType.PLUS,
+            TokenType.MINUS,
+        ):
             op_tok = self.consume()
-            right_tok = self.peek()
-            if right_tok.type == TokenType.REG:
-                r_expr = IdentifierExpr(name=self.consume(TokenType.REG).value, span=right_tok.span)
-            elif right_tok.type == TokenType.IDENTIFIER:
-                r_expr = IdentifierExpr(name=self.consume(TokenType.IDENTIFIER).value, span=right_tok.span)
-            else:
-                raise SyntaxError(f"Parser Error: Expected operand after '{op_tok.value}'")
-            return PtrOffsetExpr(base_ptr_expr=expr, offset_expr=r_expr, span=base_tok.span)
 
-        elif self.peek().type == TokenType.STAR:
+            right = self.parse_expression()
+
+            return PtrOffsetExpr(
+                base_ptr_expr=expr,
+                offset_expr=right,
+                operator=(
+                    "+"
+                    if op_tok.type == TokenType.PLUS
+                    else "-"
+                ),
+                span=getattr(
+                    expr,
+                    "span",
+                    base_tok.span if "base_tok" in locals() else None,
+                ),
+            )
+
+        # ----------------------------------------------------
+        # Matrix multiplication syntax.
+        # ----------------------------------------------------
+        if self.peek().type == TokenType.STAR:
             self.consume(TokenType.STAR)
-            r_expr = self.parse_expression()
-            return CallExpr(function_name="__matrix_mul__", arguments=(expr, r_expr))
+
+            right = self.parse_expression()
+
+            return CallExpr(
+                function_name="__matrix_mul__",
+                arguments=(expr, right),
+            )
 
         return expr
 

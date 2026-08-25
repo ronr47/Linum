@@ -1,3 +1,7 @@
+from linum.semantic.analyzer import (
+    SemIntLiteralExpr,
+    SemBinaryExpr,
+)
 from dataclasses import dataclass
 from typing import Dict, List, Set, Tuple, Optional
 
@@ -31,14 +35,17 @@ from linum.semantic.analyzer import (
     SemBlockStmt,
     SemBorrowBlockStmt,
     SemIfStmt,
+    SemPtrOffsetExpr,
     SemFunctionDecl,
     strict_lattice_join,
     join_borrows,
 )
 
-
 class ASTNode:
     span: SourceSpan = UNKNOWN_SPAN
+
+    def __init__(self, span: SourceSpan = UNKNOWN_SPAN):
+        self.span = span
 
     def check_type(self, ctx: SymbolContext) -> Type:
         raise NotImplementedError()
@@ -50,6 +57,76 @@ class ASTNode:
         next_borrow_id: List[int],
     ) -> Tuple[FlowState, SemanticNode]:
         raise NotImplementedError()
+
+
+
+@dataclass(frozen=True)
+class IntLiteralExpr(ASTNode):
+    value: int
+    span: SourceSpan = UNKNOWN_SPAN
+
+    def check_type(self, ctx: SymbolContext) -> Type:
+        return PRIMITIVE_INTEGER
+
+    def check_ownership(
+        self,
+        flow: FlowState,
+        ctx: SymbolContext,
+        next_borrow_id: List[int],
+    ) -> Tuple[FlowState, SemanticNode]:
+        return flow, SemIntLiteralExpr(
+            value=self.value,
+            type=PRIMITIVE_INTEGER,
+        )
+
+
+@dataclass(frozen=True)
+class BinaryExpr(ASTNode):
+    left: ASTNode
+    op: str
+    right: ASTNode
+    span: SourceSpan = UNKNOWN_SPAN
+
+    def check_type(self, ctx: SymbolContext) -> Type:
+        left_type = self.left.check_type(ctx)
+        right_type = self.right.check_type(ctx)
+
+        if left_type != PRIMITIVE_INTEGER:
+            raise TypeError(
+                f"Arithmetic '{self.op}' requires INTEGER lhs, "
+                f"got {left_type}."
+            )
+
+        if right_type != PRIMITIVE_INTEGER:
+            raise TypeError(
+                f"Arithmetic '{self.op}' requires INTEGER rhs, "
+                f"got {right_type}."
+            )
+
+        return PRIMITIVE_INTEGER
+
+    def check_ownership(
+        self,
+        flow: FlowState,
+        ctx: SymbolContext,
+        next_borrow_id: List[int],
+    ) -> Tuple[FlowState, SemanticNode]:
+        flow, sem_left = self.left.check_ownership(
+            flow, ctx, next_borrow_id
+        )
+
+        flow, sem_right = self.right.check_ownership(
+            flow, ctx, next_borrow_id
+        )
+
+        result_type = self.check_type(ctx)
+
+        return flow, SemBinaryExpr(
+            left=sem_left,
+            right=sem_right,
+            op=self.op,
+            type=result_type,
+        )
 
 
 @dataclass(frozen=True)
@@ -1342,30 +1419,29 @@ class PtrStoreStmt(ASTNode):
         self.pointer_expr = pointer_expr
         self.value_expr = value_expr
 class PtrOffsetExpr(ASTNode):
-    def __init__(self, base_ptr_expr, offset_expr, span=None):
+    def __init__(self, base_ptr_expr, offset_expr, operator="+", span=None):
+        super().__init__(span)
         self.base_ptr_expr = base_ptr_expr
         self.offset_expr = offset_expr
-        self.span = span
+        self.operator = operator
 
     @property
     def base_expr(self):
         return self.base_ptr_expr
 
     @base_expr.setter
-    def base_expr(self, val):
-        self.base_ptr_expr = val
+    def base_expr(self, value):
+        self.base_ptr_expr = value
 
     @property
     def base_ptr(self):
         return self.base_ptr_expr
 
     @base_ptr.setter
-    def base_ptr(self, val):
-        self.base_ptr_expr = val
+    def base_ptr(self, value):
+        self.base_ptr_expr = value
 
     def check_type(self, ctx):
-        from linum.semantic.types import PRIMITIVE_INTEGER
-
         base_type = self.base_ptr_expr.check_type(ctx)
         offset_type = self.offset_expr.check_type(ctx)
 
@@ -1379,24 +1455,34 @@ class PtrOffsetExpr(ASTNode):
                 f"Pointer arithmetic requires INTEGER offset, got {offset_type}."
             )
 
+        if self.operator not in ("+", "-"):
+            raise TypeError(
+                f"Unsupported pointer arithmetic operator: {self.operator!r}"
+            )
+
         return base_type
 
     def check_ownership(self, flow, ctx, next_borrow_id):
-        from linum.semantic.analyzer import SemPtrOffsetExpr
-        flow, sem_base = self.base_ptr_expr.check_ownership(flow, ctx, next_borrow_id)
-        flow, sem_offset = self.offset_expr.check_ownership(flow, ctx, next_borrow_id)
+        flow, sem_base = self.base_ptr_expr.check_ownership(
+            flow, ctx, next_borrow_id
+        )
+
+        flow, sem_offset = self.offset_expr.check_ownership(
+            flow, ctx, next_borrow_id
+        )
+
         base_type = self.check_type(ctx)
-        try:
-            sem_node = SemPtrOffsetExpr(base_ptr=sem_base, offset=sem_offset, type=base_type)
-        except TypeError:
-            try:
-                sem_node = SemPtrOffsetExpr(base_ptr=sem_base, offset=sem_offset)
-            except TypeError:
-                sem_node = SemPtrOffsetExpr(sem_base, sem_offset)
-        return flow, sem_node
+
+        return flow, SemPtrOffsetExpr(
+            base_ptr=sem_base,
+            offset=sem_offset,
+            type=base_type,
+            operator=self.operator,
+        )
 
     def check(self, ctx):
         return self.check_type(ctx)
+
 class StructDecl(ASTNode):
     def __init__(self, name: str, fields: Dict[str, Type], span=None):
         self.name = name

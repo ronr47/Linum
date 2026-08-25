@@ -1,0 +1,60 @@
+namespace linum.core.mm;
+
+use linum.arch.x86_64.intrinsics { tzcnt64 };
+
+@align(64)
+pub struct PhysicalMemoryBitmap {
+    frames: [u64; 32768],
+    total_frames: u64,
+}
+
+pub static mut PMM_BITMAP: PhysicalMemoryBitmap = PhysicalMemoryBitmap {
+    frames: [0u64; 32768],
+    total_frames: 32768 * 64,
+};
+
+pub fn mark_frame_allocated(phys_addr: usize) -> Result<(), u64> {
+    let aligned_addr: usize = phys_addr & ~(4096 - 1);
+    let frame_index: u64 = (aligned_addr / 4096) as u64;
+    let bitmap_index: usize = (frame_index / 64) as usize;
+    let bit_shift: u64 = frame_index % 64;
+
+    if bitmap_index >= 32768 {
+        return Err(1);
+    }
+
+    PMM_BITMAP.frames[bitmap_index] |= (1u64 << bit_shift);
+    Ok(())
+}
+
+pub fn allocate_free_frame() -> Result<usize, u64> {
+    for i in 0..32768 {
+        let chunk: u64 = PMM_BITMAP.frames[i];
+        if chunk == 0xFFFF_FFFF_FFFF_FFFF {
+            continue;
+        }
+
+        let inverted: u64 = !chunk;
+        let free_bit: u64 = tzcnt64(inverted);
+
+        PMM_BITMAP.frames[i] |= (1u64 << free_bit);
+        let calc_index: u64 = (i as u64 * 64) + free_bit;
+        return Ok((calc_index * 4096) as usize);
+    }
+
+    Err(2)
+}
+
+pub fn free_frame(phys_addr: usize) -> Result<(), u64> {
+    let aligned_addr: usize = phys_addr & ~(4096 - 1);
+    let frame_index: u64 = (aligned_addr / 4096) as u64;
+    let bitmap_index: usize = (frame_index / 64) as usize;
+    let bit_shift: u64 = frame_index % 64;
+
+    if bitmap_index >= 32768 {
+        return Err(1);
+    }
+
+    PMM_BITMAP.frames[bitmap_index] &= !(1u64 << bit_shift);
+    Ok(())
+}

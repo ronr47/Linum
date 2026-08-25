@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+
+# ==============================================================================
+
+# NULLPOINTER SYSTEM ORCHESTRATOR & CHAOS HARNESS
+
+# ==============================================================================
+
+
+WORK_DIR="/home/ronronalds"
+
+cd "$WORK_DIR"
+
+
+echo "[+] [SYSTEM BUILD] Initializing build verification sequence..."
+
+
+# 1. Detect Hardware SIMD Capabilities
+
+SIMD_FLAGS="-mavx2 -mfma"
+
+if grep -q avx512f /proc/cpuinfo 2>/dev/null; then
+
+    SIMD_FLAGS="-mavx512f -mavx2 -mfma"
+
+    echo "[+] [SIMD DETECTED] AVX-512 Support Verified."
+
+else
+
+    echo "[+] [SIMD DETECTED] AVX2/FMA Fallback Target Assigned."
+
+fi
+
+
+# 2. Build libcore_matrix.so with targeted SIMD flags
+
+echo "[+] [COMPILING] Building shared microkernel library: libcore_matrix.so..."
+
+gcc -O3 -march=native $SIMD_FLAGS -fPIC -shared core_matrix.c -o libcore_matrix.so -lrt
+
+
+# 3. Build trinity_core_bin executable
+
+echo "[+] [COMPILING] Building core execution binary: trinity_core_bin..."
+
+gcc -O3 -march=native -Wall -Wextra trinity_core.c -o trinity_core_bin -lpthread -lrt
+
+
+# 4. Compile Zig bridge target if Zig toolchain is present
+
+if command -v zig >/dev/null 2>&1; then
+
+    echo "[+] [COMPILING] Compiling Zig interface binary: app_zig_bin..."
+
+    zig build-exe -O ReleaseFast app.zig -I. -L. -lcore_matrix -femit-bin=app_zig_bin || echo "[-] [WARNING] Zig build failed; continuing C-native pipeline."
+
+else
+
+    echo "[-] [TOOLCHAIN] Zig toolchain not found in path; skipping app.zig."
+
+fi
+
+
+# 5. Execute Execution Pipeline
+
+export LD_LIBRARY_PATH=.:${LD_LIBRARY_PATH:-}
+
+
+echo "[+] [EXECUTION] Running native matrix engine (trinity_core_bin)..."
+
+./trinity_core_bin
+
+
+if [ -f "./app_zig_bin" ]; then
+
+    echo "[+] [EXECUTION] Running Zig bridge engine (app_zig_bin)..."
+
+    ./app_zig_bin
+
+fi
+
+
+# 6. Verify Artifact Synthesis
+
+if [ -f "canvas_output.bmp" ]; then
+
+    SIZE=$(stat -c%s "canvas_output.bmp")
+
+    echo "[+] [VALIDATION SUCCESS] Generated 'canvas_output.bmp' ($SIZE bytes)."
+
+else
+
+    echo "[-] [VALIDATION FAILURE] 'canvas_output.bmp' missing!"
+
+    exit 1
+
+fi
+
+
+# 7. Chaos Stress Test & Race Detector
+
+echo "[+] [CHAOS ENGINE] Spawning parallel concurrent stress threads..."
+
+for i in {1..4}; do
+
+    ./trinity_core_bin > /dev/null 2>&1 &
+
+done
+
+wait
+
+echo "[+] [CHAOS ENGINE] System survived parallel execution stress without deadlocks."

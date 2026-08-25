@@ -1,0 +1,98 @@
+2 sites
+Solution Architecture
+The Modular MAX Engine orchestration cycle maps preprocessed token matrices to an optimized execution session. This execution pathway requires instantiating an global InferenceSession context, passing the model layout configurations, binding targeted hardware memory arenas, and calling the synchronous model execution thread. 
+GitHub +1
+Complete Inference Engine Runner
+Below is the complete standalone implementation mapping custom input tensors directly into an optimized executable MAX Engine session runner pipeline.
+mojo
+import sys
+from max.tensor import Tensor, TensorShape, DType
+from max.engine import InferenceSession, Model
+from max.pipelines.architectures.mpnet.model_config import MPNetConfig
+from max.pipelines.lib.interfaces.pipeline_config import PipelineConfig
+
+# 1. Reuse the custom preprocessing transformation module
+struct MPNetPreprocessor:
+    var max_seq_len: Int
+    var pad_id: Int
+    var cls_id: Int
+    var sep_id: Int
+
+    fn __init__(inout self, max_seq_len: Int = 128):
+        self.max_seq_len = max_seq_len
+        self.pad_id = 1
+        self.cls_id = 0
+        self.sep_id = 2
+
+    fn tokenize_and_shape(self, text: String) raises -> (Tensor[DType.int64], Tensor[DType.int64]):
+        var words = text.split(" ")
+        var token_ids = List[Int]()
+        token_ids.append(self.cls_id)
+        
+        # Minimal mock vocabulary simulation mapping words to unique numeric tokens
+        for i in range(len(words)):
+            if (len(token_ids) + 1) >= self.max_seq_len:
+                break
+            var word = words[i].lower()
+            if word == "hello": token_ids.append(1001)
+            elif word == "from": token_ids.append(1002)
+            elif word == "bare": token_ids.append(1003)
+            elif word == "metal": token_ids.append(1004)
+            elif word == "mojo": token_ids.append(1005)
+            else: token_ids.append(3) # [UNK] id placeholder
+                
+        token_ids.append(self.sep_id)
+        var current_len = len(token_ids)
+        
+        var shape = TensorShape(1, self.max_seq_len)
+        var input_ids = Tensor[DType.int64](shape)
+        var attention_mask = Tensor[DType.int64](shape)
+        
+        for idx in range(self.max_seq_len):
+            if idx < current_len:
+                input_ids[0, idx] = token_ids[idx]
+                attention_mask[0, idx] = 1
+            else:
+                input_ids[0, idx] = self.pad_id
+                attention_mask[0, idx] = 0
+                
+        return input_ids, attention_mask
+
+# 2. Programmatically generate pipeline and device hardware properties
+fn init_pipeline_context(model_path: String) raises -> PipelineConfig:
+    var config = PipelineConfig()
+    config.model.model_path = model_path
+    config.task.pool_embeddings = True
+    return config
+
+# 3. Main orchestration execution frame
+fn main() raises:
+    var args = sys.argv()
+    if len(args) < 2:
+        print("Usage: ./mpnet_runner <path_to_model_dir>")
+        return
+    var model_dir = args[1]
+
+    # Step A: Preprocess raw data parameters into structured tensors
+    var preprocessor = MPNetPreprocessor(max_seq_len=128)
+    var inputs = preprocessor.tokenize_and_shape("Hello from bare metal Mojo")
+    var input_ids = inputs.0
+    var attention_mask = inputs.1
+
+    print(" Tensors properly shaped. Initializing MAX Engine session layer...")
+
+    # Step B: Instantiate process-wide unified session context
+    var session = InferenceSession()
+
+    # Step C: Model loading interface using model topology
+    var pipe_config = init_pipeline_context(model_dir)
+    var mpnet_config = MPNetConfig.initialize(pipe_config)
+    
+    # Load and optimize runtime execution graph paths
+    var model = session.load(pipe_config.model.model_path)
+
+    print(" Graph optimization complete. Executing pipeline inference session...")
+
+    # Step D: Map raw tensor inputs to named compilation variables and execute runtime graph
+    var outputs = model.execute(
+        "input_ids", input_ids, 

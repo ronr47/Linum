@@ -1,0 +1,370 @@
+35:*.emf=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.m4a=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.oga=00;36:*.opus=00;36:*.spx=00;36:*.xspf=00;36:*~=00;90:*#=00;90:*.bak=00;90:*.crdownload=00;90:*.dpkg-dist=00;90:*.dpkg-new=00;90:*.dpkg-old=00;90:*.dpkg-tmp=00;90:*.old=00;90:*.orig=00;90:*.part=00;90:*.rej=00;90:*.rpmnew=00;90:*.rpmorig=00;90:*.rpmsave=00;90:*.swp=00;90:*.tmp=00;90:*.ucf-dist=00;90:*.ucf-new=00;90:*.ucf-old=00;90:
+ Quantum-Egyptian-OS:~/quantum_egyp_os]$ ~/quantum_egyp_os/custom_os.sh
+s/custom_os.sh
+echo "=========================================================="
+echo "      
+ INITIALIZING QUANTUM-EGYPTIAN COMPILER OS 
+echo "=========================================================="
+echo "[SYSTEM]: Loading Gemini Lake Performance Matrices..."
+echo "[SYSTEM]: Calibrating Multithreaded Core Pipelines..."
+# Run your core engine calculations
+python3 ~/quantum_egyp_os/matrix_engine.py
+echo "=========================================================="
+echo " Welcome to your specialized Ubuntu-backed Environment."
+echo " Type 'help_os' for custom tools, or standard bash commands to work."
+echo "=========================================================="
+ENV_FILE=$(mktemp)
+cat << 'INNER_EOF' > "$ENV_FILE"
+export PS1="[
+ Quantum-Egyptian-OS:\w]$ "
+shopt -s nocaseglob
+    echo "Custom OS Terminal Engines:"
+    echo "  run_matrix     - Fire up the multithreaded calculation matrix."
+    echo "  scan_drives    - Probe underlying storage systems for permanent backup targets."
+    echo "  telemetry      - Extract real-time thermal and core speed metrics from Intel chip."
+    echo "  play_resonance - Synthesize a cosmic harmonic pitch of the inner chambers."
+    echo "  clean_cache    - Clear stale RAM caching vectors out of the Live USB environment."
+    echo "  boost_cpu      - Force low-latency kernel scheduler profile to maximize clock speed."
+    echo "  orion_sync     - Trace precessional alignment vectors and render the star chart."
+    echo "  backup_vault   - Commit all code repositories straight into non-volatile hardware sda1."
+    echo "  sys_info       - Run a diagnostic scan on your HP 250 device hardware."
+    echo "  exit_os        - Break execution loop and safely head back to normal Ubuntu bash."
+backup_to_drive() {
+    echo "[SYSTEM]: Creating secure local mount point..."
+    sudo mkdir -p /mnt/internal_vault
+    echo "[SYSTEM]: Mounting your
+ internal hard drive safely..."
+    sudo mount /dev/sda1 /mnt/internal_vault 2>/dev/null || sudo mount /dev/sda /mnt/internal_vault
+    if [ $? -eq 0 ]; then
+        echo "[SYSTEM]: Mount successful! Copying your code matrix repository..."
+        sudo mkdir -p /mnt/internal_vault/quantum_egyp_backup
+        sudo cp -r ~/quantum_egyp_os/* /mnt/internal_vault/quantum_egyp_backup/
+        echo "[SUCCESS]: Your code is now permanently saved to your physical hard drive!"
+        echo "[SUCCESS]: Target: /mnt/internal_vault/quantum_egyp_backup/"
+        sudo umount /mnt/internal_vault
+        echo "[ERROR]: Hard drive partition is currently locked or requires formatting."
+live_telemetry() {
+    echo "=== HP 250 TELEMETRY ENGINE ==="
+    python3 -c '
+import matrix_engine
+m = matrix_engine.HardwareTelemetry.read_metrics()
+print(f"Core Temp: {m[\"temp\"]}\nCore Speed: {m[\"freq\"]}")
+acoustic_wave() {
+    python3 -c '
+import matrix_engine
+e = matrix_engine.GeminiLakeEngine(280, 440)
+t = e.execute_parallel_analysis()
+matrix_engine.AcousticGenerator.pulse_frequencies(t.resonant_frequencies_hz)
+purge_memory_cache() {
+    echo "[SYSTEM]: Reclaiming live computing memory cells..."
+    python3 -c 'import matrix_engine; print(matrix_engine.MemoryOptimizer.flush_cache())'
+optimize_cpu_scheduler() {
+    echo "[SYSTEM]: Overriding kernel CPU frequency profiles..."
+    python3 -c 'import matrix_engine; print(matrix_engine.CPUGovernorScheduler.force_performance_mode())'
+calculate_star_lock() {
+    echo "=== ASTRONOMICAL POSITION SHIFT MATRIX ==="
+    python3 -c '
+import matrix_engine
+angle = matrix_engine.AstroAlignment.calculate_belt_angle(2026)
+print(matrix_engine.StarChartRenderer.render_orion_belt(angle))
+alias run_matrix="python3 ~/quantum_egyp_os/matrix_engine.py"
+alias scan_drives="lsblk -e 7"
+alias sys_info="lscpu | grep -E 'Model name|Core\(s\)|Thread|CPU MHz'"
+alias backup_vault="backup_to_drive"
+alias telemetry="live_telemetry"
+alias play_resonance="acoustic_wave"
+alias clean_cache="purge_memory_cache"
+alias boost_cpu="optimize_cpu_scheduler"
+alias orion_sync="calculate_star_lock"
+alias exit_os="exit"
+bash --rcfile "$ENV_FILE"
+rm -f "$ENV_FILE"
+chmod +x ~/quantum_egyp_os/custom_os.sh
+~/quantum_egyp_os/custom_os.sh
+s/custom_os.sh
+#!/bin/bash
+clear
+
+echo "=========================================================="
+echo "      
+ INITIALIZING QUANTUM-EGYPTIAN COMPILER OS 
+       "
+echo "=========================================================="
+echo "[SYSTEM]: Loading Gemini Lake Performance Matrices..."
+echo "[SYSTEM]: Calibrating Multithreaded Core Pipelines..."
+echo ""
+
+# Run your core engine calculations
+python3 ~/quantum_egyp_os/matrix_engine.py
+
+echo "=========================================================="
+echo " Welcome to your specialized Ubuntu-backed Environment."
+echo " Type 'help_os' for custom tools, or standard bash commands to work."
+echo "=========================================================="
+
+ENV_FILE=$(mktemp)
+
+cat << 'INNER_EOF' > "$ENV_FILE"
+export PS1="[
+ Quantum-Egyptian-OS:\w]$ "
+shopt -s nocaseglob
+
+help_os() {
+    echo ""
+    echo "Custom OS Terminal Engines:"
+    echo "  run_matrix     - Fire up the multithreaded calculation matrix."
+    echo "  scan_drives    - Probe underlying storage systems for permanent backup targets."
+    echo "  telemetry      - Extract real-time thermal and core speed metrics from Intel chip."
+    echo "  play_resonance - Synthesize a cosmic harmonic pitch of the inner chambers."
+    echo "  clean_cache    - Clear stale RAM caching vectors out of the Live USB environment."
+    echo "  boost_cpu      - Force low-latency kernel scheduler profile to maximize clock speed."
+    echo "  orion_sync     - Trace precessional alignment vectors and render the star chart."
+    echo "  backup_vault   - Commit all code repositories straight into non-volatile hardware sda1."
+    echo "  sys_info       - Run a diagnostic scan on your HP 250 device hardware."
+    echo "  exit_os        - Break execution loop and safely head back to normal Ubuntu bash."
+    echo ""
+}
+
+backup_to_drive() {
+    echo "[SYSTEM]: Creating secure local mount point..."
+    sudo mkdir -p /mnt/internal_vault
+    echo "[SYSTEM]: Mounting your internal hard drive safely..."
+    sudo mount /dev/sda1 /mnt/internal_vault 2>/dev/null || sudo mount /dev/sda /mnt/internal_vault
+    if [ $? -eq 0 ]; then
+        echo "[SYSTEM]: Mount successful! Copying your code matrix repository..."
+        sudo mkdir -p /mnt/internal_vault/quantum_egyp_backup
+        sudo cp -r ~/quantum_egyp_os/* /mnt/internal_vault/quantum_egyp_backup/
+        echo "[SUCCESS]: Your code is now permanently saved to your physical hard drive!"
+        echo "[SUCCESS]: Target: /mnt/internal_vault/quantum_egyp_backup/"
+        sudo umount /mnt/internal_vault
+    else
+        echo "[ERROR]: Hard drive partition is currently locked or requires formatting."
+    fi
+}
+
+live_telemetry() {
+    echo "=== HP 250 TELEMETRY ENGINE ==="
+    python3 -c '
+import matrix_engine
+m = matrix_engine.HardwareTelemetry.read_metrics()
+print(f"Core Temp: {m[\"temp\"]}\nCore Speed: {m[\"freq\"]}")
+'
+}
+
+acoustic_wave() {
+    python3 -c '
+import matrix_engine
+e = matrix_engine.GeminiLakeEngine(280, 440)
+t = e.execute_parallel_analysis()
+matrix_engine.AcousticGenerator.pulse_frequencies(t.resonant_frequencies_hz)
+'
+}
+
+purge_memory_cache() {
+    echo "[SYSTEM]: Reclaiming live computing memory cells..."
+    python3 -c 'import matrix_engine; print(matrix_engine.MemoryOptimizer.flush_cache())'
+}
+
+optimize_cpu_scheduler() {
+    echo "[SYSTEM]: Overriding kernel CPU frequency profiles..."
+    python3 -c 'import matrix_engine; print(matrix_engine.CPUGovernorScheduler.force_performance_mode())'
+}
+
+calculate_star_lock() {
+    echo "=== ASTRONOMICAL POSITION SHIFT MATRIX ==="
+    python3 -c '
+import matrix_engine
+angle = matrix_engine.AstroAlignment.calculate_belt_angle(2026)
+print(matrix_engine.StarChartRenderer.render_orion_belt(angle))
+'
+}
+
+alias run_matrix="python3 ~/quantum_egyp_os/matrix_engine.py"
+alias scan_drives="lsblk -e 7"
+alias sys_info="lscpu | grep -E 'Model name|Core\(s\)|Thread|CPU MHz'"
+alias backup_vault="backup_to_drive"
+alias telemetry="live_telemetry"
+alias play_resonance="acoustic_wave"
+alias clean_cache="purge_memory_cache"
+alias boost_cpu="optimize_cpu_scheduler"
+alias orion_sync="calculate_star_lock"
+alias exit_os="exit"
+INNER_EOF
+
+bash --rcfile "$ENV_FILE"
+rm -f "$ENV_FILE"
+EOF
+
+chmod +x ~/quantum_egyp_os/custom_os.sh
+
+/custom_os.sh
+#!/bin/bash
+clear
+
+echo "=========================================================="
+echo "      
+ INITIALIZING QUANTUM-EGYPTIAN COMPILER OS 
+       "
+echo "=========================================================="
+echo "[SYSTEM]: Loading Gemini Lake Performance Matrices..."
+echo "[SYSTEM]: Calibrating Multithreaded Core Pipelines..."
+echo ""
+
+# Run your core engine calculations
+python3 ~/quantum_egyp_os/matrix_engine.py
+
+echo "=========================================================="
+echo " Welcome to your specialized Ubuntu-backed Environment."
+echo " Type 'help_os' for custom tools, or standard bash commands to work."
+echo "=========================================================="
+
+ENV_FILE=$(mktemp)
+
+cat << 'INNER_EOF' > "$ENV_FILE"
+export PS1="[
+ Quantum-Egyptian-OS:\w]$ "
+shopt -s nocaseglob
+
+help_os() {
+    echo ""
+    echo "Custom OS Terminal Engines:"
+    echo "  run_matrix     - Fire up the multithreaded calculation matrix."
+    echo "  scan_drives    - Probe underlying storage systems for permanent backup targets."
+    echo "  telemetry      - Extract real-time thermal and core speed metrics from Intel chip."
+    echo "  play_resonance - Synthesize a cosmic harmonic pitch of the inner chambers."
+    echo "  clean_cache    - Clear stale RAM caching vectors out of the Live USB environment."
+    echo "  boost_cpu      - Force low-latency kernel scheduler profile to maximize clock speed."
+    echo "  orion_sync     - Trace precessional alignment vectors and render the star chart."
+    echo "  backup_vault   - Commit all code repositories straight into non-volatile hardware sda1."
+    echo "  sys_info       - Run a diagnostic scan on your HP 250 device hardware."
+    echo "  exit_os        - Break execution loop and safely head back to normal Ubuntu bash."
+    echo ""
+}
+
+backup_to_drive() {
+    echo "[SYSTEM]: Creating secure local mount point..."
+    sudo mkdir -p /mnt/internal_vault
+    echo "[SYSTEM]: Mounting your internal hard drive safely..."
+    sudo mount /dev/sda1 /mnt/internal_vault 2>/dev/null || sudo mount /dev/sda /mnt/internal_vault
+    if [ $? -eq 0 ]; then
+        echo "[SYSTEM]: Mount successful! Copying your code matrix repository..."
+        sudo mkdir -p /mnt/internal_vault/quantum_egyp_backup
+        sudo cp -r ~/quantum_egyp_os/* /mnt/internal_vault/quantum_egyp_backup/
+        echo "[SUCCESS]: Your code is now permanently saved to your physical hard drive!"
+        echo "[SUCCESS]: Target: /mnt/internal_vault/quantum_egyp_backup/"
+        sudo umount /mnt/internal_vault
+    else
+        echo "[ERROR]: Hard drive partition is currently locked or requires formatting."
+    fi
+}
+
+live_telemetry() {
+    echo "=== HP 250 TELEMETRY ENGINE ==="
+    python3 -c '
+import matrix_engine
+m = matrix_engine.HardwareTelemetry.read_metrics()
+print(f"Core Temp: {m[\"temp\"]}\nCore Speed: {m[\"freq\"]}")
+'
+}
+
+acoustic_wave() {
+    python3 -c '
+import matrix_engine
+e = matrix_engine.GeminiLakeEngine(280, 440)
+t = e.execute_parallel_analysis()
+matrix_engine.AcousticGenerator.pulse_frequencies(t.resonant_frequencies_hz)
+'
+}
+
+purge_memory_cache() {
+    echo "[SYSTEM]: Reclaiming live computing memory cells..."
+    python3 -c 'import matrix_engine; print(matrix_engine.MemoryOptimizer.flush_cache())'
+}
+
+optimize_cpu_scheduler() {
+    echo "[SYSTEM]: Overriding kernel CPU frequency profiles..."
+    python3 -c 'import matrix_engine; print(matrix_engine.CPUGovernorScheduler.force_performance_mode())'
+}
+
+calculate_star_lock() {
+    echo "=== ASTRONOMICAL POSITION SHIFT MATRIX ==="
+    python3 -c '
+import matrix_engine
+angle = matrix_engine.AstroAlignment.calculate_belt_angle(2026)
+print(matrix_engine.StarChartRenderer.render_orion_belt(angle))
+'
+}
+
+alias run_matrix="python3 ~/quantum_egyp_os/matrix_engine.py"
+alias scan_drives="lsblk -e 7"
+alias sys_info="lscpu | grep -E 'Model name|Core\(s\)|Thread|CPU MHz'"
+alias backup_vault="backup_to_drive"
+alias telemetry="live_telemetry"
+alias play_resonance="acoustic_wave"
+alias clean_cache="purge_memory_cache"
+alias boost_cpu="optimize_cpu_scheduler"
+alias orion_sync="calculate_star_lock"
+alias exit_os="exit"
+INNER_EOF
+
+bash --rcfile "$ENV_FILE"
+rm -f "$ENV_FILE"
+EOF
+
+chmod +x ~/quantum_egyp_os/custom_os.sh
+
+/quantum_egyp_os/custom_os.sh
+#!/bin/bash
+clear
+
+echo "=========================================================="
+echo "      
+ INITIALIZING QUANTUM-EGYPTIAN COMPILER OS 
+       "
+echo "=========================================================="
+echo "[SYSTEM]: Loading Gemini Lake Performance Matrices..."
+echo "[SYSTEM]: Calibrating Multithreaded Core Pipelines..."
+echo ""
+
+# Run your core engine calculations
+python3 ~/quantum_egyp_os/matrix_engine.py
+
+
+/quantum_egyp_os/custom_os.sh
+#!/bin/bash
+clear
+
+echo "=========================================================="
+echo "      
+ INITIALIZING QUANTUM-EGYPTIAN COMPILER OS 
+       "
+echo "=========================================================="
+echo "[SYSTEM]: Loading Gemini Lake Performance Matrices..."
+echo "[SYSTEM]: Calibrating Multithreaded Core Pipelines..."
+echo ""
+
+# Run your core engine calculations
+python3 ~/quantum_egyp_os/matrix_engine.py
+
+/quantum_egyp_os/custom_os.sh
+#!/bin/bash
+clear
+
+echo "=========================================================="
+echo "      
+ INITIALIZING QUANTUM-EGYPTIAN COMPILER OS 
+       "
+echo "=========================================================="
+echo "[SYSTEM]: Loading Gemini Lake Performance Matrices..."
+echo "[SYSTEM]: Calibrating Multithreaded Core Pipelines..."
+echo ""
+
+# Run your core engine calculations
+python3 ~/quantum_egyp_os/matrix_engine.py
+
+
+/quantum_egyp_os/custom_os.sh
+#!/bin/bash
+clear
+
+echo "=========00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

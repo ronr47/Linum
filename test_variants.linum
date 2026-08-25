@@ -1,0 +1,5 @@
+{
+    let q : COPY = %val_100;
+    let r : COPY = %val_200;
+    return q + r;
+}

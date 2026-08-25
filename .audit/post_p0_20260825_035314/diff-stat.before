@@ -1,0 +1,15 @@
+ .repair_snapshot_20260818_150954/analyzer.py    |  276 -----
+ .repair_snapshot_20260818_150954/current.diff   |  450 -------
+ .repair_snapshot_20260818_150954/git-status.txt |   22 -
+ .repair_snapshot_20260818_150954/nodes.py       | 1445 -----------------------
+ bin/linum                                       |  118 +-
+ linker64.ld                                     |   37 +-
+ src/linum.egg-info/SOURCES.txt                  |    8 +
+ src/linum/ast/nodes.py                          |  126 +-
+ src/linum/frontend/parser.py                    |  113 +-
+ src/linum/lowering/cfg.py                       |  440 +++++--
+ src/linum/lowering/ir.py                        |    1 +
+ src/linum/semantic/analyzer.py                  |   15 +-
+ src/linum/semantic/verifier.py                  |  819 ++++++++++---
+ test_main.linum                                 |    4 +-
+ 14 files changed, 1259 insertions(+), 2615 deletions(-)

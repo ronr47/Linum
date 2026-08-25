@@ -1,39 +1,17 @@
-.release_snapshot/
-finalize_linum.sh
-tatus
+# Ignore massive raw disk images and vaults
+*.img
+*.iso
+himara_vault.img
 
-# compiler validation outputs
-.audit_*/
-.debug_snapshots/
-.toolchain/
-*.ll
-*.bc
-*.o
-*.verified.ll
-__pycache__/
-**/__pycache__/
-
-# local python environment
+# Ignore local python virtual environments
+venv/
+linum-env/
 .venv/
+__pycache__/
+*.pyc
 
-# compiler recovery snapshots
-*.before-*
-*.backup.*
-*.corrupt*
-*.pre_*
-*.o
-*.elf
-*.bin
+# Ignore compiled local test binaries and local mount points
+himara_mount/
+zig-out/
 target/
-.builds/
-/tmp/qemu_fiber_serial.log
-recovered_pyramids_full/
-carved_*/
-archive/
-mojo/
-rust_lane/
-rust_sys_engine/
-target/
-target/
-YOUR_LIVE_ACCESS_TOKEN
-YOUR_LIVE_ACCESS_TOKEN
+build/artifacts/

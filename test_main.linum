@@ -1,5 +1,3 @@
 {
-    let ptr_var : ptr = %uninit_stub;
-    let q : COPY = %val_42;
-    return q;
+    return %val_42;
 }

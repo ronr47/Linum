@@ -1,0 +1,10 @@
+5c966af Remove leaked access token
+ddc8123 Remove leaked access token
+abbb763 build: verify 70 functional invariants and affine lifetime soundness
+9bb02a5 perf: harden 64-byte vector alignment checks and finalize FFI return gates
+dc9d512 chore(repo): finalize workspace cleanup, gitignore rust artifacts, and stage runner scripts
+fac947a chore(workspace): organize recovery tools, runners, and VBE harnesses into tools/
+17d110a fix(harness): integrate isa-debug-exit and direct stdio capture in audit suite
+a8b9c7e feat(kernel64): implement verified 64-bit long-mode 3-fiber exokernel with SSE2, eBPF JIT, and GRUB multiboot
+2cfe68a feat(baremetal): implement 512-byte MBR with UART COM1 serial and 64-bit long mode jump
+3eac0c8 perf(fastjit): achieve 3.96 cycles (3.60ns) steady-state throughput on zero-copy bridge

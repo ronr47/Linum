@@ -1,0 +1,169 @@
+.......FFFF....F....F................FF.F.......FF...........F.........  [100%]
+=================================== FAILURES ===================================
+__________________________ test_cli_emit_llvm_stdout ___________________________
+tests/test_cli.py:15: in test_cli_emit_llvm_stdout
+    assert ret == 0
+E   assert 1 == 0
+----------------------------- Captured stdout call -----------------------------
+
+[38;2;70;130;180m╭── ⚡ [LINUM 2050 PIPELINE] [1;38;2;255;255;255m/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_llvm_stdout0/simple.linum[0m [38;2;255;160;0m[Target: LLVM][0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mINGEST[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.008s)[0m [38;2;220;220;230mQuantum Token Stream & Lexical Map[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSYNTAX[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.012s)[0m [38;2;220;220;230mAbstract Syntax Forest & SIMD Bounds[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVERIFY[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.015s)[0m [38;2;220;220;230mNeuro-Symbolic Conservation Gate[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTOPOLG[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.009s)[0m [38;2;220;220;230mCFG Lifetime Manifold Synthesis[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSSA-IR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.011s)[0m [38;2;220;220;230mLinear State Single-Assignment[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVECTOR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.018s)[0m [38;2;220;220;230mAVX-512 Vector & SROA Pipeline[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTARGET[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.010s)[0m [38;2;220;220;230mMachine Lowering -> [LLVM][0m
+[38;2;70;130;180m╰── [38;2;0;229;255m⚡ SYNTHESIS COMPLETE[0m [38;2;255;160;0m•[0m [38;2;220;220;230m0 Leaks[0m [38;2;255;160;0m•[0m [38;2;220;220;230mInvariants Sound[0m [38;2;255;160;0m•[0m [38;2;0;229;255mArtifact Emitted[0m
+
+----------------------------- Captured stderr call -----------------------------
+/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_llvm_stdout0/simple.linum: error [semantic]: Non-Lexical Lifetime Violation: Source register 'r1' is dead
+___________________________ test_cli_emit_llvm_file ____________________________
+tests/test_cli.py:31: in test_cli_emit_llvm_file
+    assert ret == 0
+E   assert 1 == 0
+----------------------------- Captured stdout call -----------------------------
+
+[38;2;70;130;180m╭── ⚡ [LINUM 2050 PIPELINE] [1;38;2;255;255;255m/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_llvm_file0/file.linum[0m [38;2;255;160;0m[Target: LLVM][0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mINGEST[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.008s)[0m [38;2;220;220;230mQuantum Token Stream & Lexical Map[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSYNTAX[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.012s)[0m [38;2;220;220;230mAbstract Syntax Forest & SIMD Bounds[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVERIFY[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.015s)[0m [38;2;220;220;230mNeuro-Symbolic Conservation Gate[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTOPOLG[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.009s)[0m [38;2;220;220;230mCFG Lifetime Manifold Synthesis[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSSA-IR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.011s)[0m [38;2;220;220;230mLinear State Single-Assignment[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVECTOR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.018s)[0m [38;2;220;220;230mAVX-512 Vector & SROA Pipeline[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTARGET[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.010s)[0m [38;2;220;220;230mMachine Lowering -> [LLVM][0m
+[38;2;70;130;180m╰── [38;2;0;229;255m⚡ SYNTHESIS COMPLETE[0m [38;2;255;160;0m•[0m [38;2;220;220;230m0 Leaks[0m [38;2;255;160;0m•[0m [38;2;220;220;230mInvariants Sound[0m [38;2;255;160;0m•[0m [38;2;0;229;255mArtifact Emitted[0m
+
+----------------------------- Captured stderr call -----------------------------
+/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_llvm_file0/file.linum: error [semantic]: Non-Lexical Lifetime Violation: Source register 'r1' is dead
+___________________________ test_cli_emit_asm_stdout ___________________________
+tests/test_cli.py:46: in test_cli_emit_asm_stdout
+    assert ret == 0
+E   assert 1 == 0
+----------------------------- Captured stdout call -----------------------------
+
+[38;2;70;130;180m╭── ⚡ [LINUM 2050 PIPELINE] [1;38;2;255;255;255m/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_asm_stdout0/asm.linum[0m [38;2;255;160;0m[Target: ASM][0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mINGEST[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.008s)[0m [38;2;220;220;230mQuantum Token Stream & Lexical Map[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSYNTAX[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.012s)[0m [38;2;220;220;230mAbstract Syntax Forest & SIMD Bounds[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVERIFY[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.015s)[0m [38;2;220;220;230mNeuro-Symbolic Conservation Gate[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTOPOLG[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.009s)[0m [38;2;220;220;230mCFG Lifetime Manifold Synthesis[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSSA-IR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.011s)[0m [38;2;220;220;230mLinear State Single-Assignment[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVECTOR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.018s)[0m [38;2;220;220;230mAVX-512 Vector & SROA Pipeline[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTARGET[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.010s)[0m [38;2;220;220;230mMachine Lowering -> [ASM][0m
+[38;2;70;130;180m╰── [38;2;0;229;255m⚡ SYNTHESIS COMPLETE[0m [38;2;255;160;0m•[0m [38;2;220;220;230m0 Leaks[0m [38;2;255;160;0m•[0m [38;2;220;220;230mInvariants Sound[0m [38;2;255;160;0m•[0m [38;2;0;229;255mArtifact Emitted[0m
+
+----------------------------- Captured stderr call -----------------------------
+/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_asm_stdout0/asm.linum: error [semantic]: Non-Lexical Lifetime Violation: Source register 'r1' is dead
+____________________________ test_cli_emit_obj_file ____________________________
+tests/test_cli.py:61: in test_cli_emit_obj_file
+    assert ret == 0
+E   assert 1 == 0
+----------------------------- Captured stdout call -----------------------------
+
+[38;2;70;130;180m╭── ⚡ [LINUM 2050 PIPELINE] [1;38;2;255;255;255m/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_obj_file0/obj.linum[0m [38;2;255;160;0m[Target: OBJ][0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mINGEST[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.008s)[0m [38;2;220;220;230mQuantum Token Stream & Lexical Map[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSYNTAX[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.012s)[0m [38;2;220;220;230mAbstract Syntax Forest & SIMD Bounds[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVERIFY[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.015s)[0m [38;2;220;220;230mNeuro-Symbolic Conservation Gate[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTOPOLG[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.009s)[0m [38;2;220;220;230mCFG Lifetime Manifold Synthesis[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mSSA-IR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.011s)[0m [38;2;220;220;230mLinear State Single-Assignment[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mVECTOR[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.018s)[0m [38;2;220;220;230mAVX-512 Vector & SROA Pipeline[0m
+[38;2;70;130;180m│[0m  [38;2;0;229;255m▶[0m [[38;2;255;160;0mTARGET[0m] [[38;2;0;229;255m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m] [38;2;255;255;255m100%[0m [38;2;120;130;150m(0.010s)[0m [38;2;220;220;230mMachine Lowering -> [OBJ][0m
+[38;2;70;130;180m╰── [38;2;0;229;255m⚡ SYNTHESIS COMPLETE[0m [38;2;255;160;0m•[0m [38;2;220;220;230m0 Leaks[0m [38;2;255;160;0m•[0m [38;2;220;220;230mInvariants Sound[0m [38;2;255;160;0m•[0m [38;2;0;229;255mArtifact Emitted[0m
+
+----------------------------- Captured stderr call -----------------------------
+/tmp/user/1000/pytest-of-ron/pytest-0/test_cli_emit_obj_file0/obj.linum: error [semantic]: Non-Lexical Lifetime Violation: Source register 'r1' is dead
+_____________________ test_linear_lifetime_knot_rejection ______________________
+tests/test_epistemic_crucible.py:11: in test_linear_lifetime_knot_rejection
+    with pytest.raises(DiagnosticError, match="Borrow Invalidation Hazard|Borrow target"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'Borrow Invalidation Hazard|Borrow target'
+E     Actual message: "error[semantic]: Semantic Error: Identifier 'premature_sink' is completely unbound."
+________________________ test_leak_sentinel_cli_success ________________________
+tests/test_leak_sentinel.py:9: in test_leak_sentinel_cli_success
+    assert ret == 0
+E   assert 1 == 0
+----------------------------- Captured stderr call -----------------------------
+/tmp/user/1000/pytest-of-ron/pytest-0/test_leak_sentinel_cli_success0/valid_audit_sample.linum: error [semantic]: Non-Lexical Lifetime Violation: Source register 'r1' is dead
+__________________________ test_branch_file_pipeline ___________________________
+tests/test_program_pipeline.py:13: in test_branch_file_pipeline
+    llvm = compile_source(
+src/linum/compiler.py:103: in compile_source
+    return LinumCompiler().compile_source(
+src/linum/compiler.py:60: in compile_source
+    verifier.verify_function(ast_func)
+src/linum/semantic/verifier.py:153: in verify_function
+    self._verify_block(
+src/linum/semantic/verifier.py:178: in _verify_block
+    self._verify_stmt(
+src/linum/semantic/verifier.py:343: in _verify_stmt
+    cond_ty = self._infer_expr_type(
+src/linum/semantic/verifier.py:675: in _infer_expr_type
+    return sym.type
+           ^^^^^^^^
+E   AttributeError: 'tuple' object has no attribute 'type'
+________________________ test_arithmetic_file_pipeline _________________________
+src/linum/compiler.py:103: in compile_source
+    return LinumCompiler().compile_source(
+src/linum/compiler.py:68: in compile_source
+    nll_analyzer.validate_use_after_live_range()
+src/linum/lowering/cfg.py:490: in validate_use_after_live_range
+    raise TypeError(
+E   TypeError: Non-Lexical Lifetime Violation: Source register 'r1' is dead
+
+During handling of the above exception, another exception occurred:
+tests/test_program_pipeline.py:20: in test_arithmetic_file_pipeline
+    llvm = compile_source(
+src/linum/compiler.py:131: in compile_source
+    raise DiagnosticError(
+E   linum.diagnostics.errors.DiagnosticError: error[semantic]: Non-Lexical Lifetime Violation: Source register 'r1' is dead
+___________________ test_unmanaged_ptr_integration_pipeline ____________________
+tests/test_program_pipeline.py:76: in test_unmanaged_ptr_integration_pipeline
+    nll.validate_use_after_live_range()
+src/linum/lowering/cfg.py:490: in validate_use_after_live_range
+    raise TypeError(
+E   TypeError: Non-Lexical Lifetime Violation: Source register 'r2' is dead
+___________________ test_matrix_dimension_mismatch_rejection ___________________
+tests/test_program_pipeline.py:353: in test_matrix_dimension_mismatch_rejection
+    with pytest.raises(DiagnosticError, match="matrix multiplication dimension mismatch"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'matrix multiplication dimension mismatch'
+E     Actual message: "error[semantic]: Tracking Failure: Context frame contains no trace for variable 'matrix_new_dim_mismatch_placeholder'."
+_________________ test_matrix_non_square_determinant_rejection _________________
+tests/test_program_pipeline.py:358: in test_matrix_non_square_determinant_rejection
+    with pytest.raises(DiagnosticError, match="det expects a square matrix"):
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: Regex pattern did not match.
+E     Expected regex: 'det expects a square matrix'
+E     Actual message: "error[semantic]: Tracking Failure: Context frame contains no trace for variable 'matrix_new_non_square_placeholder'."
+___________________ test_valid_static_matrix_multiplication ____________________
+src/linum/compiler.py:103: in compile_source
+    return LinumCompiler().compile_source(
+src/linum/compiler.py:68: in compile_source
+    nll_analyzer.validate_use_after_live_range()
+src/linum/lowering/cfg.py:480: in validate_use_after_live_range
+    raise TypeError(
+E   TypeError: Non-Lexical Lifetime Violation: Use of dead variable 'val_0'
+
+During handling of the above exception, another exception occurred:
+tests/test_tensor_dimensions.py:13: in test_valid_static_matrix_multiplication
+    llvm = compile_source(code, "test_matrix_conform")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/linum/compiler.py:131: in compile_source
+    raise DiagnosticError(
+E   linum.diagnostics.errors.DiagnosticError: error[semantic]: Non-Lexical Lifetime Violation: Use of dead variable 'val_0'
+=========================== short test summary info ============================
+FAILED tests/test_cli.py::test_cli_emit_llvm_stdout - assert 1 == 0
+FAILED tests/test_cli.py::test_cli_emit_llvm_file - assert 1 == 0
+FAILED tests/test_cli.py::test_cli_emit_asm_stdout - assert 1 == 0
+FAILED tests/test_cli.py::test_cli_emit_obj_file - assert 1 == 0
+FAILED tests/test_epistemic_crucible.py::test_linear_lifetime_knot_rejection
+FAILED tests/test_leak_sentinel.py::test_leak_sentinel_cli_success - assert 1...
+FAILED tests/test_program_pipeline.py::test_branch_file_pipeline - AttributeE...
+FAILED tests/test_program_pipeline.py::test_arithmetic_file_pipeline - linum....
+FAILED tests/test_program_pipeline.py::test_unmanaged_ptr_integration_pipeline
+FAILED tests/test_program_pipeline.py::test_matrix_dimension_mismatch_rejection
+FAILED tests/test_program_pipeline.py::test_matrix_non_square_determinant_rejection
+FAILED tests/test_tensor_dimensions.py::test_valid_static_matrix_multiplication
+12 failed, 59 passed, 5 deselected in 2.34s

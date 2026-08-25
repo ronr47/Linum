@@ -1,0 +1,239 @@
+=== LINUM BASELINE ===
+2026-08-25T03:30:23+10:00
+
+=== GIT ===
+## main...origin/main
+ D .repair_snapshot_20260818_150954/analyzer.py
+ D .repair_snapshot_20260818_150954/current.diff
+ D .repair_snapshot_20260818_150954/git-status.txt
+ D .repair_snapshot_20260818_150954/nodes.py
+ M bin/linum
+ M linker64.ld
+ M src/linum.egg-info/SOURCES.txt
+ M src/linum/ast/nodes.py
+ M src/linum/frontend/parser.py
+ M src/linum/lowering/cfg.py
+ M src/linum/lowering/ir.py
+ M src/linum/semantic/analyzer.py
+ M src/linum/semantic/verifier.py
+ M test_main.linum
+?? -o_baremetal.s
+?? -o_ebpf.c
+?? -o_proof.smt2
+?? .audit/
+?? .zig-cache/
+?? Answer
+?? Dockerfile
+?? Makefile
+?? Selection
+?? alpine-standard-3.20.0-x86_64.iso
+?? arithmetic.s
+?? benchmark_harness.py
+?? bin/linum.backend
+?? bin/mbench
+?? bin/mgen
+?? bin/mgrep
+?? bin/mhttpsd
+?? bin/minwm
+?? bin/msniff
+?? boot.S
+?? boot.s
+?? build.sh
+?? build.zig
+?? build.zig.zon
+?? build/aarch64/
+?? build/ipc/
+?? build/riscv64/
+?? build/tensor/
+?? build/test.s
+?? build/wasm/
+?? build_and_run_travel.sh
+?? build_and_verify_all.sh
+?? check_all_tools_and_files.sh
+?? compile_polyglot_core.sh
+?? deep_audit_targets.sh
+?? deploy_daemon.sh
+?? deploy_graft.sh
+?? deploy_mojo_engine.sh
+?? deploy_rust_wrapper.sh
+?? disk.img
+?? e820_parser.c
+?? ebepfprob.sh
+?? edl/
+?? fetch_spot.c
+?? fix_assembler_sections.py
+?? fix_bootloader.py
+?? fix_bootloader_final.py
+?? fix_bootloader_final_safe.py
+?? fix_bootloader_layout_final.py
+?? fix_freestanding_substrate.py
+?? full_toolchain_audit.sh
+?? fx-harness/
+?? fx_harness_scaffolding.md
+?? gateway_core_v2
+?? gateway_core_v2.c
+?? gateway_core_v3
+?? gateway_core_v3.c
+?? gateway_core_v4
+?? gateway_core_v4.c
+?? gateway_core_v5
+?? gateway_core_v5.c
+?? gateway_core_v6
+?? gateway_core_v6.c
+?? generate_kernel_stub.c
+?? ghost/
+?? harden_and_align_workspace.sh
+?? impossible_matrix.c
+?? impossible_matrix.verified.c
+?? impossible_test.linum
+?? index.html
+?? index.html.1
+?? index.md
+?? io.c
+?? iso/
+?? kernel.c
+?? kernel_main.c
+?? kestrel
+?? kestrel.rs
+?? kestrel_journal.dat
+?? linker.ld
+?? linum-disk.qcow2
+?? linum-stack.tar.gz
+?? linum.sh
+?? linum/
+?? linumE_engine.c
+?? linumE_engine.h
+?? linum_bootstrap.c
+?? linum_core.ll.before_llvm21_fix
+?? linum_extreme_stress.linum
+?? linum_kernel.c
+?? linum_master_compiler.sh
+?? linum_model_gate.py
+?? linum_telemetry.c
+?? linum_unified/
+?? linum_unified_toolchain.sh
+?? linums
+?? linums.rs
+?? loader.s
+?? meta_advanced.py
+?? meta_builder.py
+?? microkernel.c
+?? model_audit.linum
+?? models/
+?? module_5_metal.py
+?? native/linum_cranelift/Cargo.lock
+?? native/linum_ebpf_loader/Cargo.lock
+?? native/linum_mem_scraper/
+?? native/linum_quantum_bridge/
+?? native/linum_race_hunter/
+?? native/linum_rop_hunter/
+?? native/linum_wasi/Cargo.lock
+?? net_daemon.c
+?? net_tester.c
+?? netsentinel_advanced.py
+?? notes.md
+?? optimizer.py
+?? output_module
+?? parse_model_native.py
+?? parse_shield.py
+?? parse_synth_model.py
+?? phone_diag.sh
+?? phone_unlock_engine.py
+?? pmm.c
+?? pmm.h
+?? pmm.linum
+?? pmm.s
+?? pmm_generated.c
+?? pmm_generated.h
+?? pmm_out_baremetal.s
+?? pmm_out_ebpf.c
+?? pmm_out_proof.smt2
+?? project_aether.py
+?? project_chronos_core.py
+?? project_chronos_interactive.py
+?? qdl/
+?? recovered_dumps/
+?? run_baremetal_node.sh
+?? run_benchmark.sh
+?? run_linum.sh
+?? run_linum_microkernel.sh
+?? run_local_inference.py
+?? sample
+?? sexagesimal.py
+?? src/attention_lowering.s
+?? src/ebpf_monitor.rs
+?? src/ffi_gate.rs
+?? src/firewall.rs
+?? src/ipc.zig
+?? src/jit_binder.c
+?? src/lib.rs
+?? src/linum/backends/
+?? src/linum/quantum/
+?? src/linum/runtime/
+?? src/linum/semantic/analyzer.py,
+?? src/linum_fastjit/Cargo.lock
+?? src/linum_lsp/Cargo.lock
+?? src/main.rs
+?? src/main.zig
+?? src/mbench.c
+?? src/mgen.c
+?? src/mgrep.c
+?? src/mhttpsd.c
+?? src/minwm.c
+?? src/msniff.c
+?? src/pipe.rs
+?? src/root.zig
+?? src/tensor.zig
+?? src/verify_bounds.py
+?? stderr.log
+?? stdout.log
+?? test_hello.linum
+?? test_hello_copy.linum
+?? test_phone_unlock.py
+?? test_s.s
+?? test_variants.linum
+?? testfile.txt
+?? tests/integration/
+?? tmp/
+?? tokenizer_core.py
+?? tools/compile_polyglot_core.sh
+?? tools/scanners/scan_raw_gguf.py
+?? traffic_gen
+?? traffic_gen.c
+?? traffic_gen_v2
+?? traffic_gen_v2.c
+?? traffic_gen_v3
+?? traffic_gen_v3.c
+?? travel_spot_exec
+?? usb_core.c
+?? zig-out/
+
+=== HEAD ===
+5c966af8301233b8fe2a39e4aa9418e0c7c25423
+5c966af8301233b8fe2a39e4aa9418e0c7c25423
+2026-08-22T15:20:53+10:00
+Remove leaked access token
+
+=== TOOLCHAIN ===
+Python 3.14.6
+pytest 9.1.1
+Debian clang version 21.1.8 (10)
+Debian LLVM version 21.1.8
+  Optimized build.
+  Default target: x86_64-pc-linux-gnu
+  Host CPU: goldmont-plus
+0.13.0
+
+=== LINUM ENTRYPOINT ===
+bin/linum: Bourne-Again shell script, ASCII text executable
+/home/ron/linum/bin/linum
+
+=== CORE SOURCE HASHES ===
+49e8659f3f16bdf3aa966c9969674dc0e9ff1e48d0c52367ace35634504844ec  src/linum/ast/nodes.py
+71d319a6f8a744b668f790f6ed13b68a6fa3f614980b6a9cba8c6001703c2544  src/linum/frontend/parser.py
+e15cfb87dc51bcb2c73b4aa2ea075601994de179ea8041882c66718d2532878a  src/linum/lowering/cfg.py
+95e18d828311a26be2d37f1b5fe1959762690f0c3f693e14212c0fcaa8f5d412  src/linum/lowering/ir.py
+ac8b63b664ab49852a1cbbfc459a0cb560e6824b510dc22384cd15ffb409935e  src/linum/semantic/analyzer.py
+4d90206da8b5e32d4f304d2d9cf7ec72f2de58f3a2710ef39589280c8aee2dc1  src/linum/semantic/verifier.py
+7c3df4d28479cc46bd3aff03e858daf3a34c019fa85dd4eee65b8cb8c0f3cd26  bin/linum
+f872b9df6f60a5bf430a6dd7fe8ed7b66bf331bc326653c1c1a6f5e0c010e508  test_main.linum

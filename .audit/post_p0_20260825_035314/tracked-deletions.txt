@@ -1,0 +1,4 @@
+.repair_snapshot_20260818_150954/analyzer.py
+.repair_snapshot_20260818_150954/current.diff
+.repair_snapshot_20260818_150954/git-status.txt
+.repair_snapshot_20260818_150954/nodes.py

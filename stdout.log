@@ -1,0 +1,6 @@
+┌────────────────────────────────────────────────────────┐
+│ ⚡ LINUM UNIFIED COMPILER PIPELINE                      │
+│ Source:  linum_extreme_stress.linum Target: LLVM               │
+│ Profile: release        Emit:   OBJ                │
+└────────────────────────────────────────────────────────┘
+[✔] LLVM Target lowered and emitted: extreme_artifact.ll
