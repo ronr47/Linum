@@ -242,6 +242,10 @@ class NeuroSymbolicAstVerifier:
             )
 
             if expr_val is not None:
+                # Capture symbolic placeholder string in env before/during expression verification
+                init_repr = getattr(expr_val, "name", str(expr_val))
+                env[var_name] = (var_ann or Type("matrix", OwnershipMode.COPY), OwnershipMode.COPY, init_repr)
+
                 self._verify_expr(
                     expr_val,
                     env,
@@ -262,9 +266,11 @@ class NeuroSymbolicAstVerifier:
                 OwnershipMode.COPY,
             )
 
+            init_str = getattr(expr_val, "name", str(expr_val)) if expr_val is not None else ""
             env[var_name] = (
                 v_type,
                 v_mode,
+                init_str,
             )
 
             if v_mode == OwnershipMode.LINEAR:
@@ -335,7 +341,9 @@ class NeuroSymbolicAstVerifier:
                     f"'{dst}'"
                 )
 
-            src_type, src_mode = env[src]
+            src_entry = env[src]
+            src_type = src_entry[0]
+            src_mode = src_entry[1] if len(src_entry) > 1 else OwnershipMode.COPY[0], env[src][1]
 
             if src_mode == OwnershipMode.LINEAR:
                 env.pop(src, None)
@@ -435,7 +443,7 @@ class NeuroSymbolicAstVerifier:
                 name
                 for name in merged_linear
                 if name in merged_env
-                and merged_env[name][1] == OwnershipMode.LINEAR
+                and (merged_env[name][1] if isinstance(merged_env[name], tuple) else merged_env[name]) == OwnershipMode.LINEAR
             )
 
         elif sname == "BorrowBlockStmt":

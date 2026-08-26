@@ -151,10 +151,28 @@ class IdentifierExpr(ASTNode):
             )
 
         if self.name not in flow.ownership:
-            raise TypeError(
-                f"Tracking Failure: Context frame contains no trace "
-                f"for variable '{self.name}'."
-            )
+            # SymbolContext may already know about declarations that are
+            # introduced by the current semantic environment but have not
+            # yet acquired an explicit ownership-flow entry.  This is valid
+            # for COPY-valued symbolic/stencil inputs, including matrix
+            # validation placeholders.  Seed them as live rather than
+            # misclassifying the missing flow edge as an internal tracking
+            # failure.
+            try:
+                declared_type, declared_mode = ctx.lookup(self.name)
+            except (KeyError, TypeError):
+                raise TypeError(
+                    f"Tracking Failure: Context frame contains no trace "
+                    f"for variable '{self.name}'."
+                )
+
+            if declared_mode is OwnershipMode.COPY:
+                flow.ownership[self.name] = OwnerState.OWNED
+            else:
+                raise TypeError(
+                    f"Tracking Failure: Context frame contains no trace "
+                    f"for variable '{self.name}'."
+                )
 
         state = flow.ownership[self.name]
 
@@ -463,6 +481,17 @@ class MoveStmt(ASTNode):
         next_borrow_id: List[int],
     ) -> Tuple[FlowState, SemanticNode]:
         src_type, src_mode = ctx.lookup(self.source)
+
+        src_borrows = flow.active_borrows.get(
+            self.source,
+            set(),
+        )
+        if src_borrows:
+            raise TypeError(
+                f"Borrow Invalidation Hazard: Cannot move out of "
+                f"'{self.source}' while active borrows remain."
+            )
+
         dest_type, dest_mode = ctx.lookup(
             self.destination
         )

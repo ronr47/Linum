@@ -80,7 +80,9 @@ class SymbolContext:
         return list(self.scopes[-1].keys())
 
     def is_assignable(self, source: Type, target: Type) -> bool:
-        return source.name == target.name and source.params == target.params and source.extra == target.extra
+        s_name = "INTEGER" if source.name in ("INTEGER", "i64") else source.name
+        t_name = "INTEGER" if target.name in ("INTEGER", "i64") else target.name
+        return s_name == t_name and source.params == target.params and source.extra == target.extra
 
 @dataclass(frozen=True)
 class ParameterContract:

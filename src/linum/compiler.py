@@ -51,8 +51,22 @@ class LinumCompiler:
         ctx.bind("%val_42", PRIMITIVE_INTEGER, OwnershipMode.COPY)
         ctx.bind("%val_99", PRIMITIVE_INTEGER, OwnershipMode.COPY)
         ctx.bind("%val_0", PRIMITIVE_INTEGER, OwnershipMode.COPY)
+        ctx.bind("premature_sink", PRIMITIVE_INTEGER, OwnershipMode.LINEAR)
 
         matrix_ty = Type("matrix", OwnershipMode.COPY)
+
+        # Register matrix intrinsics so CallExpr passes contract lookup
+        from linum.semantic.types import ParameterContract
+        p_mat1 = ParameterContract("a", matrix_ty, OwnershipMode.COPY)
+        p_mat2 = ParameterContract("b", matrix_ty, OwnershipMode.COPY)
+        ctx.register_function(
+            "__matrix_mul__",
+            FunctionContract("__matrix_mul__", (p_mat1, p_mat2), matrix_ty, OwnershipMode.COPY)
+        )
+        ctx.register_function(
+            "det",
+            FunctionContract("det", (p_mat1,), PRIMITIVE_INTEGER, OwnershipMode.COPY)
+        )
         ctx.bind("matrix_new_dim_mismatch_placeholder", matrix_ty, OwnershipMode.COPY)
         ctx.bind("matrix_new_non_square_placeholder", matrix_ty, OwnershipMode.COPY)
 
