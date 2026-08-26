@@ -9,9 +9,26 @@ linum-env/
 .venv/
 __pycache__/
 *.pyc
-
 # Ignore compiled local test binaries and local mount points
 himara_mount/
 zig-out/
 target/
 build/artifacts/
+# Object files and binaries
+*.o
+*.elf
+*.bc
+*.ll
+*.s
+*.dat
+iso_root/
+crucible_out/
+dist/
+build/
+# Local benchmark and native test runners
+test_harness
+test_pmm_bench
+test_linum_pmm_driver
+beast_runner
+linum_pipeline_runner
+test_master_beast_*
