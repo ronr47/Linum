@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Continuous raw block ingestion into target scratchpad
+TARGET="${1:-scratch.r2}"
+echo "=== R2 Heredoc Ingestion Active (Target: $TARGET) ==="
+echo "Paste R2 code below. Type 'EOF' on an empty line or press Ctrl+D to commit."
+
+while true; do
+    printf "\n[r2-clip: ready for input]\n"
+    # Read until standalone EOF token or Ctrl-D
+    BLOCK=$(sed '/^EOF$/q')
+    if [ -z "$BLOCK" ]; then
+        echo "Exiting r2-clip."
+        break
+    fi
+    # Strip the trailing EOF line if matched
+    CLEAN_BLOCK=$(echo "$BLOCK" | sed '/^EOF$/d')
+    echo "$CLEAN_BLOCK" >> "$TARGET"
+    echo ">> Appended $(echo "$CLEAN_BLOCK" | wc -l) lines to $TARGET"
+done
