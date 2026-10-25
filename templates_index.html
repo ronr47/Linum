@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Navara D23 // HUD Monitor</title>
+    <style>
+        body { background: #070b12; color: #00f0ff; font-family: -apple-system, sans-serif; margin: 0; padding: 18px; text-align: center; }
+        .card { background: #0e1626; border: 1px solid #1a2c47; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        .val { font-size: 64px; font-weight: 800; color: #ffffff; margin: 5px 0; }
+        .unit { font-size: 16px; color: #5a7b9c; letter-spacing: 2px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .status-pill { display: inline-block; padding: 6px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; background: #132438; color: #00f0ff; margin-bottom: 12px; }
+        .online { background: #083322; color: #00ff88; border: 1px solid #00ff88; }
+    </style>
+<link rel="icon" type="image/svg+xml" href="/icon.svg"><meta name="theme-color" content="#071322"></head>
+<body>
+    <div id="pill" class="status-pill">STANDBY // AWAITING LINK</div>
+    
+    <div class="card">
+        <div class="unit">SPEED</div>
+        <div id="spd" class="val">0</div>
+        <div class="unit">KM / H</div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="unit">ENGINE RPM</div>
+            <div id="rpm" class="val" style="font-size: 38px;">0</div>
+            <div class="unit">RPM</div>
+        </div>
+        <div class="card">
+            <div class="unit">BUS VOLTAGE</div>
+            <div id="volt" class="val" style="font-size: 38px; color: #ffb700;">--</div>
+            <div class="unit">VOLTS</div>
+        </div>
+    </div>
+
+    <script>
+        setInterval(async () => {
+            try {
+                let res = await fetch('/telemetry');
+                let d = await res.json();
+                document.getElementById('rpm').innerText = Math.round(d.engine_rpm || 0);
+                document.getElementById('spd').innerText = d.vehicle_speed_kmh || 0;
+                document.getElementById('volt').innerText = d.battery_voltage || '--';
+                
+                let pill = document.getElementById('pill');
+                if (d.status === "ONLINE") {
+                    pill.className = "status-pill online";
+                    pill.innerText = "● LIVE HS-CAN // ACTIVE";
+                }
+            } catch(e) {}
+        }, 100);
+    </script>
+</body>
+</html>

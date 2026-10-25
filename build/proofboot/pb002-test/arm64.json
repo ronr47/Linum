@@ -1,0 +1,8 @@
+{
+  "policy": "proofboot-pb002-v1",
+  "generation": 1,
+  "architecture": "aarch64",
+  "format": "PE32+",
+  "size": 1024,
+  "sha256": "acb0fe94399b045f5f6e2ce5b928711fd8cd4f748a07426a16c61c327bb12713"
+}

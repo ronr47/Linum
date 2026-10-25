@@ -1,0 +1,29 @@
+.target aarch64
+.entry commander_entry
+
+register r0: i64;       // Sensory Input State
+register r1: i64;       // Weight Matrix Parameter
+register r2: i64;       // Baseline Bias
+register r3: i64;       // Accumulator State
+
+pipeline commander_entry {
+    r0 <- 5;
+    r1 <- 3;
+    r2 <- -4;
+    
+    // Homomorphic MAC projection: Y = (X * W) + B
+    r3 <- r0 * r1;
+    r3 <- r3 + r2;
+    
+    // Signum Homeostatic Boundary Decision
+    on r3 <= 0 divert trigger_stabilizer;
+    
+    // Emission of Equilibrium Invariant
+    trap vector 0x40;
+    trap vector 0x5D;
+}
+
+pipeline trigger_stabilizer {
+    trap vector 0x40;
+    trap vector 0x5D;
+}

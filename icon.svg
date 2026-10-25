@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#122943"/>
+      <stop offset="100%" stop-color="#030710"/>
+    </linearGradient>
+    <linearGradient id="cyan" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#65FFFF"/>
+      <stop offset="100%" stop-color="#008CFF"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="12" y="12" width="488" height="488" rx="100"
+        fill="none" stroke="#254663" stroke-width="5"/>
+  <g fill="none" stroke="url(#cyan)" stroke-width="13"
+     stroke-linecap="round" filter="url(#glow)">
+    <path d="M108 285 A150 150 0 0 1 404 285"/>
+    <path d="M145 321 A115 115 0 0 0 367 321"/>
+    <path d="M256 132 V170"/>
+    <path d="M151 180 L177 206"/>
+    <path d="M361 180 L335 206"/>
+  </g>
+  <circle cx="256" cy="256" r="70" fill="#071322"
+          stroke="#00E5FF" stroke-width="9"/>
+  <path d="M224 281 L224 231 L247 231 L272 265 L272 231 L291 231 L291 281 L269 281 L244 247 L244 281 Z"
+        fill="#E8FFFF"/>
+  <path d="M256 256 L315 204" stroke="#7B61FF"
+        stroke-width="12" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="13" fill="#00F0FF"/>
+  <text x="256" y="376" text-anchor="middle"
+        font-family="sans-serif" font-size="43"
+        font-weight="900" letter-spacing="5" fill="#00E5FF">LINX</text>
+  <text x="256" y="414" text-anchor="middle"
+        font-family="monospace" font-size="17"
+        letter-spacing="4" fill="#8BAAC8">AUTOMOTIVE CORE</text>
+</svg>
