@@ -1,8 +1,6 @@
-/* Built-in Minimal x86_64 Runtime for Cross-Device Execution */
 #include <stdint.h>
 #include <stddef.h>
 
-/* Direct Linux x86_64 Syscalls */
 static inline int64_t sys_write(int fd, const void *buf, size_t count) {
     int64_t ret;
     __asm__ volatile (
@@ -71,47 +69,51 @@ static void print_uint_dec(uint32_t val) {
         buf[idx--] = '0' + (val % 10);
         val /= 10;
     }
-    sys_write(1, &buf[idx + 1], 10 - idx);
+    sys_write(1, &buf[idx + 1], 11 - idx);
 }
 
-int printf(const char *fmt, ...) {
+int printf(const char *format, ...) {
     __builtin_va_list args;
-    __builtin_va_start(args, fmt);
-
-    while (*fmt) {
-        if (*fmt == '%' && *(fmt + 1)) {
-            fmt++;
-            if (*fmt == 's') {
+    __builtin_va_start(args, format);
+    while (*format) {
+        if (*format == '%' && *(format + 1)) {
+            format++;
+            if (*format == 's') {
                 const char *s = __builtin_va_arg(args, const char *);
-                if (s) sys_write(1, s, strlen(s));
-            } else if (*fmt == 'u') {
-                uint32_t v = __builtin_va_arg(args, uint32_t);
-                print_uint_dec(v);
-            } else if (*fmt == 'X' || (*fmt == '0' && *(fmt + 1) == '8' && *(fmt + 2) == 'X')) {
-                if (*fmt == '0') fmt += 2;
-                uint32_t v = __builtin_va_arg(args, uint32_t);
-                print_uint_hex(v);
-            } else if (*fmt == '%') {
+                if (!s) s = "(null)";
+                sys_write(1, s, strlen(s));
+            } else if (*format == 'd' || *format == 'u') {
+                uint32_t val = __builtin_va_arg(args, uint32_t);
+                print_uint_dec(val);
+            } else if (*format == 'x' || *format == 'X') {
+                uint32_t val = __builtin_va_arg(args, uint32_t);
+                print_uint_hex(val);
+            } else if (*format == 'c') {
+                char c = (char)__builtin_va_arg(args, int);
+                sys_write(1, &c, 1);
+            } else if (*format == '%') {
                 sys_write(1, "%", 1);
             }
         } else {
-            sys_write(1, fmt, 1);
+            sys_write(1, format, 1);
         }
-        fmt++;
+        format++;
     }
     __builtin_va_end(args);
     return 0;
 }
 
 void __assert_fail(const char *expr, const char *file, int line) {
-    (void)file; (void)line;
-    sys_write(2, "[-] Assertion failed: ", 22);
+    sys_write(2, "[!] ASSERTION FAILED: ", 22);
     sys_write(2, expr, strlen(expr));
+    sys_write(2, " at ", 4);
+    sys_write(2, file, strlen(file));
+    sys_write(2, ":", 1);
+    print_uint_dec(line);
     sys_write(2, "\n", 1);
     sys_exit(1);
 }
 
-/* Entry point */
 extern int main(void);
 
 void _start(void) {

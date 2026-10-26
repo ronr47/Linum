@@ -1,0 +1,39 @@
+test_elf64_header (test_pe_inspector.InspectorTests.test_elf64_header) ... ok
+test_pe32_plus_header (test_pe_inspector.InspectorTests.test_pe32_plus_header) ... ok
+test_reject_truncated_pe (test_pe_inspector.InspectorTests.test_reject_truncated_pe) ... ok
+test_reject_wrong_elf_class (test_pe_inspector.InspectorTests.test_reject_wrong_elf_class) ... ok
+test_authorized_commit (test_proofboot_pb003.PB003Tests.test_authorized_commit) ... ok
+test_authorized_recovery (test_proofboot_pb003.PB003Tests.test_authorized_recovery) ... ok
+test_authorized_transition (test_proofboot_pb003.PB003Tests.test_authorized_transition) ... ok
+test_commit_requires_pending_state (test_proofboot_pb003.PB003Tests.test_commit_requires_pending_state) ... ok
+test_cross_architecture_rejected (test_proofboot_pb003.PB003Tests.test_cross_architecture_rejected) ... ok
+test_generation_skip_rejected (test_proofboot_pb003.PB003Tests.test_generation_skip_rejected) ... ok
+test_new_release_key_authorized (test_proofboot_pb003.PB003Tests.test_new_release_key_authorized) ... ok
+test_old_release_key_revoked_after_transition (test_proofboot_pb003.PB003Tests.test_old_release_key_revoked_after_transition) ... ok
+test_recovery_requires_authorized_key (test_proofboot_pb003.PB003Tests.test_recovery_requires_authorized_key) ... ok
+test_untrusted_transition_signer_rejected (test_proofboot_pb003.PB003Tests.test_untrusted_transition_signer_rejected) ... ok
+test_completed_update (test_proofboot_pb004.PB004Tests.test_completed_update) ... ok
+test_crash_after_cleanup (test_proofboot_pb004.PB004Tests.test_crash_after_cleanup) ... ok
+test_crash_after_commit (test_proofboot_pb004.PB004Tests.test_crash_after_commit) ... ok
+test_crash_after_pending_write (test_proofboot_pb004.PB004Tests.test_crash_after_pending_write) ... ok
+test_crash_after_validation (test_proofboot_pb004.PB004Tests.test_crash_after_validation) ... ok
+test_crash_before_update_preserves_old_policy (test_proofboot_pb004.PB004Tests.test_crash_before_update_preserves_old_policy) ... ok
+test_completed_update (test_proofboot_pb005.PB005Tests.test_completed_update) ... ok
+test_corrupt_committed_record_fails_closed (test_proofboot_pb005.PB005Tests.test_corrupt_committed_record_fails_closed) ... ok
+test_crash_after_commit_keeps_new_policy (test_proofboot_pb005.PB005Tests.test_crash_after_commit_keeps_new_policy) ... ok
+test_crash_before_commit_keeps_old_policy (test_proofboot_pb005.PB005Tests.test_crash_before_commit_keeps_old_policy) ... ok
+test_pending_record_is_not_authoritative (test_proofboot_pb005.PB005Tests.test_pending_record_is_not_authoritative) ... ok
+test_unknown_policy_fields_rejected (test_proofboot_pb005.PB005Tests.test_unknown_policy_fields_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 1.140s
+
+OK
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1

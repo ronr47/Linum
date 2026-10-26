@@ -1,0 +1,35 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/data/data/com.termux/files/home/linum/src/cli/r2c_stage0.py", line 38, in <module>
+    inspect_source(Path(sys.argv[1]))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/linum/src/cli/r2c_stage0.py", line 20, in inspect_source
+    mod = parser.parse_module()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 56, in parse_module
+    decls.append(self._parse_function())
+                 ~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 160, in _parse_function
+    stmt = self._parse_statement()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 186, in _parse_statement
+    s = self._parse_statement()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 177, in _parse_statement
+    init_expr = self._parse_expr()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 227, in _parse_expr
+    return self._parse_relational()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 230, in _parse_relational
+    expr = self._parse_additive()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 239, in _parse_additive
+    expr = self._parse_bitwise()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 248, in _parse_bitwise
+    expr = self._parse_unary()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 261, in _parse_unary
+    return self._parse_primary()
+           ~~~~~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 287, in _parse_primary
+    self._expect(TokenType.RPAREN)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 31, in _expect
+    raise SyntaxError(f"Expected {token_type.name} at line {t.line}:{t.col}, got {t.type.name} ({t.value})")
+SyntaxError: Expected RPAREN at line 52:36, got LBRACKET ([)

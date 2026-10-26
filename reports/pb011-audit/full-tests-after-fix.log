@@ -1,0 +1,159 @@
+test_offset_0x280_elf_pt_load (test_hybrid_invariants.TestHybridInvariants.test_offset_0x280_elf_pt_load) ... ok
+test_offset_0x3c_e_lfanew (test_hybrid_invariants.TestHybridInvariants.test_offset_0x3c_e_lfanew) ... ok
+test_offset_0x40_elf_header (test_hybrid_invariants.TestHybridInvariants.test_offset_0x40_elf_header) ... ok
+test_offset_0x80_pe_header (test_hybrid_invariants.TestHybridInvariants.test_offset_0x80_pe_header) ... ok
+test_zero_aliasing_pe_section_table_and_elf_pt_load (test_hybrid_invariants.TestHybridInvariants.test_zero_aliasing_pe_section_table_and_elf_pt_load) ... ok
+test_elf64_header (test_pe_inspector.InspectorTests.test_elf64_header) ... ok
+test_pe32_plus_header (test_pe_inspector.InspectorTests.test_pe32_plus_header) ... ok
+test_reject_truncated_pe (test_pe_inspector.InspectorTests.test_reject_truncated_pe) ... ok
+test_reject_wrong_elf_class (test_pe_inspector.InspectorTests.test_reject_wrong_elf_class) ... ok
+test_authorized_commit (test_proofboot_pb003.PB003Tests.test_authorized_commit) ... ok
+test_authorized_recovery (test_proofboot_pb003.PB003Tests.test_authorized_recovery) ... ok
+test_authorized_transition (test_proofboot_pb003.PB003Tests.test_authorized_transition) ... ok
+test_commit_requires_pending_state (test_proofboot_pb003.PB003Tests.test_commit_requires_pending_state) ... ok
+test_cross_architecture_rejected (test_proofboot_pb003.PB003Tests.test_cross_architecture_rejected) ... ok
+test_generation_skip_rejected (test_proofboot_pb003.PB003Tests.test_generation_skip_rejected) ... ok
+test_new_release_key_authorized (test_proofboot_pb003.PB003Tests.test_new_release_key_authorized) ... ok
+test_old_release_key_revoked_after_transition (test_proofboot_pb003.PB003Tests.test_old_release_key_revoked_after_transition) ... ok
+test_recovery_requires_authorized_key (test_proofboot_pb003.PB003Tests.test_recovery_requires_authorized_key) ... ok
+test_untrusted_transition_signer_rejected (test_proofboot_pb003.PB003Tests.test_untrusted_transition_signer_rejected) ... ok
+test_completed_update (test_proofboot_pb004.PB004Tests.test_completed_update) ... ok
+test_crash_after_cleanup (test_proofboot_pb004.PB004Tests.test_crash_after_cleanup) ... ok
+test_crash_after_commit (test_proofboot_pb004.PB004Tests.test_crash_after_commit) ... ok
+test_crash_after_pending_write (test_proofboot_pb004.PB004Tests.test_crash_after_pending_write) ... ok
+test_crash_after_validation (test_proofboot_pb004.PB004Tests.test_crash_after_validation) ... ok
+test_crash_before_update_preserves_old_policy (test_proofboot_pb004.PB004Tests.test_crash_before_update_preserves_old_policy) ... ok
+test_completed_update (test_proofboot_pb005.PB005Tests.test_completed_update) ... ok
+test_corrupt_committed_record_fails_closed (test_proofboot_pb005.PB005Tests.test_corrupt_committed_record_fails_closed) ... ok
+test_crash_after_commit_keeps_new_policy (test_proofboot_pb005.PB005Tests.test_crash_after_commit_keeps_new_policy) ... ok
+test_crash_before_commit_keeps_old_policy (test_proofboot_pb005.PB005Tests.test_crash_before_commit_keeps_old_policy) ... ok
+test_pending_record_is_not_authoritative (test_proofboot_pb005.PB005Tests.test_pending_record_is_not_authoritative) ... ok
+test_unknown_policy_fields_rejected (test_proofboot_pb005.PB005Tests.test_unknown_policy_fields_rejected) ... ok
+test_committed_replace_failure_preserves_old_policy (test_proofboot_pb005_hardening.PB005HardeningTests.test_committed_replace_failure_preserves_old_policy) ... ok
+test_existing_lock_rejects_initialization (test_proofboot_pb005_hardening.PB005HardeningTests.test_existing_lock_rejects_initialization) ... ok
+test_existing_lock_rejects_update (test_proofboot_pb005_hardening.PB005HardeningTests.test_existing_lock_rejects_update) ... ok
+test_file_fsync_failure_propagates_and_cleans_temp (test_proofboot_pb005_hardening.PB005HardeningTests.test_file_fsync_failure_propagates_and_cleans_temp) ... ok
+test_invalid_keys_do_not_modify_store (test_proofboot_pb005_hardening.PB005HardeningTests.test_invalid_keys_do_not_modify_store) ... ok
+test_pending_directory_fsync_failure_propagates (test_proofboot_pb005_hardening.PB005HardeningTests.test_pending_directory_fsync_failure_propagates) ... ok
+test_pending_replace_failure_preserves_committed (test_proofboot_pb005_hardening.PB005HardeningTests.test_pending_replace_failure_preserves_committed) ... ok
+test_successful_update_cleans_lock_and_pending (test_proofboot_pb005_hardening.PB005HardeningTests.test_successful_update_cleans_lock_and_pending) ... ok
+test_clean_transition_lifecycle (test_proofboot_pb006.PB006Tests.test_clean_transition_lifecycle) ... ok
+test_corrupted_committed_fails_closed (test_proofboot_pb006.PB006Tests.test_corrupted_committed_fails_closed) ... ok
+test_crashes_after_commit_preserve_gen2 (test_proofboot_pb006.PB006Tests.test_crashes_after_commit_preserve_gen2) ... ok
+test_crashes_before_commit_preserve_gen1 (test_proofboot_pb006.PB006Tests.test_crashes_before_commit_preserve_gen1) ... ok
+test_orphan_pending_never_promoted (test_proofboot_pb006.PB006Tests.test_orphan_pending_never_promoted) ... ok
+test_architecture_validation (test_proofboot_pb007.PB007Tests.test_architecture_validation) ... ok
+test_bit_flip_tampering_fails_closed (test_proofboot_pb007.PB007Tests.test_bit_flip_tampering_fails_closed)
+Simulate bit-rot / sector corruption: modifying 1 byte invalidates authority. ... ok
+test_clean_authorized_lifecycle (test_proofboot_pb007.PB007Tests.test_clean_authorized_lifecycle) ... ok
+test_payload_tamper_signature_mismatch (test_proofboot_pb007.PB007Tests.test_payload_tamper_signature_mismatch)
+Altering the generation directly without re-signing fails HMAC check. ... ok
+test_wrong_secret_key_rejected (test_proofboot_pb007.PB007Tests.test_wrong_secret_key_rejected) ... ok
+test_active_bank_tamper_fails_closed (test_proofboot_pb008.PB008Tests.test_active_bank_tamper_fails_closed)
+Modifying the active bank causes cryptographic rejection. ... ok
+test_dual_bank_flip_transition (test_proofboot_pb008.PB008Tests.test_dual_bank_flip_transition) ... ok
+test_header_tamper_fails_closed (test_proofboot_pb008.PB008Tests.test_header_tamper_fails_closed)
+Invalid slot indicator in header halts boot. ... ok
+test_initial_state (test_proofboot_pb008.PB008Tests.test_initial_state) ... ok
+test_torn_standby_write_leaves_active_bank_valid (test_proofboot_pb008.PB008Tests.test_torn_standby_write_leaves_active_bank_valid)
+Simulate power-loss during standby write: active slot remains completely uncorrupted. ... ok
+test_both_headers_corrupt_fails_closed (test_proofboot_pb009.PB009Tests.test_both_headers_corrupt_fails_closed)
+If both redundant headers are invalid, the system halts without guessing. ... ok
+test_initial_header_arbitration (test_proofboot_pb009.PB009Tests.test_initial_header_arbitration) ... ok
+test_monotonic_sequence_progression (test_proofboot_pb009.PB009Tests.test_monotonic_sequence_progression) ... ok
+test_torn_header_fallback (test_proofboot_pb009.PB009Tests.test_torn_header_fallback)
+If the latest header is torn mid-write, the previous valid header is selected. ... ok
+test_arbitration_initial (test_proofboot_pb010.TestProofBootPB010.test_arbitration_initial) ... ok
+test_monotonic_violation_rejected (test_proofboot_pb010.TestProofBootPB010.test_monotonic_violation_rejected) ... ok
+test_transition_success (test_proofboot_pb010.TestProofBootPB010.test_transition_success) ... ok
+test_lexer_tokenizes_invariants (test_stage0_parser.TestStage0Parser.test_lexer_tokenizes_invariants) ... ok
+test_lexer_tokenizes_memory_domains (test_stage0_parser.TestStage0Parser.test_lexer_tokenizes_memory_domains) ... ok
+test_parse_pb010_module (test_stage0_parser.TestStage0Parser.test_parse_pb010_module) ... ERROR
+
+======================================================================
+ERROR: test_parse_pb010_module (test_stage0_parser.TestStage0Parser.test_parse_pb010_module)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/data/data/com.termux/files/home/linum/tests/test_stage0_parser.py", line 40, in test_parse_pb010_module
+    mod = parser.parse_module()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 56, in parse_module
+    decls.append(self._parse_function())
+                 ~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 160, in _parse_function
+    stmt = self._parse_statement()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 186, in _parse_statement
+    s = self._parse_statement()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 177, in _parse_statement
+    init_expr = self._parse_expr()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 227, in _parse_expr
+    return self._parse_relational()
+           ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 230, in _parse_relational
+    expr = self._parse_additive()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 239, in _parse_additive
+    expr = self._parse_bitwise()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 248, in _parse_bitwise
+    expr = self._parse_unary()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 261, in _parse_unary
+    return self._parse_primary()
+           ~~~~~~~~~~~~~~~~~~~^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 287, in _parse_primary
+    self._expect(TokenType.RPAREN)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 31, in _expect
+    raise SyntaxError(f"Expected {token_type.name} at line {t.line}:{t.col}, got {t.type.name} ({t.value})")
+SyntaxError: Expected RPAREN at line 52:36, got LBRACKET ([)
+
+----------------------------------------------------------------------
+Ran 64 tests in 4.769s
+
+FAILED (errors=1)
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized generation 1
+Initialized NVRAM Bank A (Slot 0, Generation 1)
+Initialized NVRAM Bank A (Slot 0, Generation 1)
+Initialized NVRAM Bank A (Slot 0, Generation 1)
+Initialized NVRAM Bank A (Slot 0, Generation 1)
+Initialized NVRAM Bank A (Slot 0, Generation 1)
+Initialized PB-009 Dual-Header NVRAM (Bank A, Slot 0, Gen 1)
+Initialized PB-009 Dual-Header NVRAM (Bank A, Slot 0, Gen 1)
+Initialized PB-009 Dual-Header NVRAM (Bank A, Slot 0, Gen 1)
+Initialized PB-009 Dual-Header NVRAM (Bank A, Slot 0, Gen 1)

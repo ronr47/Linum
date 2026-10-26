@@ -1,0 +1,10 @@
+{
+  "policy": "proofboot-pb001-v1",
+  "size": 1024,
+  "sha256": "acb0fe94399b045f5f6e2ce5b928711fd8cd4f748a07426a16c61c327bb12713",
+  "format": "PE32+",
+  "architecture": "aarch64",
+  "machine": 43620,
+  "sections": 1,
+  "subsystem": 10
+}

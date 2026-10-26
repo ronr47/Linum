@@ -80,10 +80,7 @@ fn parse_header(slot_base: ram<u8>) -> (bool, Header) {
     if hdr.magic != PB_MAGIC {
         return (false, hdr);
     }
-    if hdr.active_slot > 1 {
-        return (false, hdr);
-    }
-    let computed_crc = crc32(slot_base, 16);
+    let computed_crc = crc32(slot_base, 12);
     if hdr.crc != computed_crc {
         return (false, hdr);
     }

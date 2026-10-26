@@ -1,0 +1,263 @@
+LINUM EFI STRUCTURAL AUDIT
+Date: 2026-10-25T21:49:12Z
+Target: /data/data/com.termux/files/home/toolkit/firmware_uefi/BOOTX64.EFI
+SHA256: a5363e67cded51f09f9fd510d344cd9ea346fb987c89cdc2712a02da09587108  /data/data/com.termux/files/home/toolkit/firmware_uefi/BOOTX64.EFI
+
+=== FILE TYPE ===
+/data/data/com.termux/files/home/toolkit/firmware_uefi/BOOTX64.EFI: PE32+ executable for EFI (application), x86-64, 2 sections
+
+=== PE STRUCTURAL VALIDATION ===
+{
+  "path": "/data/data/com.termux/files/home/toolkit/firmware_uefi/BOOTX64.EFI",
+  "file_size": 2048,
+  "machine": "0x8664",
+  "optional_magic": "0x20b",
+  "pe_offset": "0x78",
+  "entry_rva": "0x1000",
+  "preferred_image_base": "0x140000000",
+  "section_alignment": 4096,
+  "file_alignment": 512,
+  "size_of_image": "0x3000",
+  "size_of_headers": "0x400",
+  "subsystem": 10,
+  "data_directory_count": 16,
+  "sections": [
+    {
+      "name": ".text",
+      "virtual_address": "0x1000",
+      "virtual_size": 147,
+      "raw_offset": "0x400",
+      "raw_size": 512,
+      "characteristics": "0x60000020"
+    },
+    {
+      "name": ".rdata",
+      "virtual_address": "0x2000",
+      "virtual_size": 498,
+      "raw_offset": "0x600",
+      "raw_size": 512,
+      "characteristics": "0x40000040"
+    }
+  ],
+  "raw_overlaps": [],
+  "virtual_overlaps": [],
+  "entry_sections": [
+    ".text"
+  ],
+  "entry_file_offset": "0x400",
+  "structural_validation": "PASS"
+}
+
+=== INDEPENDENT LLVM HEADER CHECK ===
+
+File: /data/data/com.termux/files/home/toolkit/firmware_uefi/BOOTX64.EFI
+Format: COFF-x86-64
+Arch: x86_64
+AddressSize: 64bit
+ImageFileHeader {
+  Machine: IMAGE_FILE_MACHINE_AMD64 (0x8664)
+  SectionCount: 2
+  TimeDateStamp: 2026-09-25 19:22:33 (0x6AB6C9F9)
+  PointerToSymbolTable: 0x0
+  SymbolCount: 0
+  StringTableSize: 0
+  OptionalHeaderSize: 240
+  Characteristics [ (0x22)
+    IMAGE_FILE_EXECUTABLE_IMAGE (0x2)
+    IMAGE_FILE_LARGE_ADDRESS_AWARE (0x20)
+  ]
+}
+ImageOptionalHeader {
+  Magic: 0x20B
+  MajorLinkerVersion: 14
+  MinorLinkerVersion: 0
+  SizeOfCode: 512
+  SizeOfInitializedData: 512
+  SizeOfUninitializedData: 0
+  AddressOfEntryPoint: 0x1000
+  BaseOfCode: 0x1000
+  ImageBase: 0x140000000
+  SectionAlignment: 4096
+  FileAlignment: 512
+  MajorOperatingSystemVersion: 6
+  MinorOperatingSystemVersion: 0
+  MajorImageVersion: 0
+  MinorImageVersion: 0
+  MajorSubsystemVersion: 6
+  MinorSubsystemVersion: 0
+  SizeOfImage: 12288
+  SizeOfHeaders: 1024
+  CheckSum: 0x0
+  Subsystem: IMAGE_SUBSYSTEM_EFI_APPLICATION (0xA)
+  Characteristics [ (0x8160)
+    IMAGE_DLL_CHARACTERISTICS_DYNAMIC_BASE (0x40)
+    IMAGE_DLL_CHARACTERISTICS_HIGH_ENTROPY_VA (0x20)
+    IMAGE_DLL_CHARACTERISTICS_NX_COMPAT (0x100)
+    IMAGE_DLL_CHARACTERISTICS_TERMINAL_SERVER_AWARE (0x8000)
+  ]
+  SizeOfStackReserve: 1048576
+  SizeOfStackCommit: 4096
+  SizeOfHeapReserve: 1048576
+  SizeOfHeapCommit: 4096
+  NumberOfRvaAndSize: 16
+  DataDirectory {
+    ExportTableRVA: 0x0
+    ExportTableSize: 0x0
+    ImportTableRVA: 0x0
+    ImportTableSize: 0x0
+    ResourceTableRVA: 0x0
+    ResourceTableSize: 0x0
+    ExceptionTableRVA: 0x0
+    ExceptionTableSize: 0x0
+    CertificateTableRVA: 0x0
+    CertificateTableSize: 0x0
+    BaseRelocationTableRVA: 0x0
+    BaseRelocationTableSize: 0x0
+    DebugRVA: 0x0
+    DebugSize: 0x0
+    ArchitectureRVA: 0x0
+    ArchitectureSize: 0x0
+    GlobalPtrRVA: 0x0
+    GlobalPtrSize: 0x0
+    TLSTableRVA: 0x0
+    TLSTableSize: 0x0
+    LoadConfigTableRVA: 0x0
+    LoadConfigTableSize: 0x0
+    BoundImportRVA: 0x0
+    BoundImportSize: 0x0
+    IATRVA: 0x0
+    IATSize: 0x0
+    DelayImportDescriptorRVA: 0x0
+    DelayImportDescriptorSize: 0x0
+    CLRRuntimeHeaderRVA: 0x0
+    CLRRuntimeHeaderSize: 0x0
+    ReservedRVA: 0x0
+    ReservedSize: 0x0
+  }
+}
+DOSHeader {
+  Magic: MZ
+  UsedBytesInTheLastPage: 120
+  FileSizeInPages: 1
+  NumberOfRelocationItems: 0
+  HeaderSizeInParagraphs: 4
+  MinimumExtraParagraphs: 0
+  MaximumExtraParagraphs: 0
+  InitialRelativeSS: 0
+  InitialSP: 0
+  Checksum: 0
+  InitialIP: 0
+  InitialRelativeCS: 0
+  AddressOfRelocationTable: 64
+  OverlayNumber: 0
+  OEMid: 0
+  OEMinfo: 0
+  AddressOfNewExeHeader: 120
+}
+Sections [
+  Section {
+    Number: 1
+    Name: .text (2E 74 65 78 74 00 00 00)
+    VirtualSize: 0x93
+    VirtualAddress: 0x1000
+    RawDataSize: 512
+    PointerToRawData: 0x400
+    PointerToRelocations: 0x0
+    PointerToLineNumbers: 0x0
+    RelocationCount: 0
+    LineNumberCount: 0
+    Characteristics [ (0x60000020)
+      IMAGE_SCN_CNT_CODE (0x20)
+      IMAGE_SCN_MEM_EXECUTE (0x20000000)
+      IMAGE_SCN_MEM_READ (0x40000000)
+    ]
+  }
+  Section {
+    Number: 2
+    Name: .rdata (2E 72 64 61 74 61 00 00)
+    VirtualSize: 0x1F2
+    VirtualAddress: 0x2000
+    RawDataSize: 512
+    PointerToRawData: 0x600
+    PointerToRelocations: 0x0
+    PointerToLineNumbers: 0x0
+    RelocationCount: 0
+    LineNumberCount: 0
+    Characteristics [ (0x40000040)
+      IMAGE_SCN_CNT_INITIALIZED_DATA (0x40)
+      IMAGE_SCN_MEM_READ (0x40000000)
+    ]
+  }
+]
+
+=== CODE DISASSEMBLY ===
+
+/data/data/com.termux/files/home/toolkit/firmware_uefi/BOOTX64.EFI:	file format coff-x86-64
+
+Disassembly of section .text:
+
+0000000140001000 <.text>:
+140001000: 55                          	pushq	%rbp
+140001001: 48 89 e5                    	movq	%rsp, %rbp
+140001004: 48 83 e4 f0                 	andq	$-0x10, %rsp
+140001008: 48 83 ec 20                 	subq	$0x20, %rsp
+14000100c: e8 0f 00 00 00              	callq	0x140001020 <.text+0x20>
+140001011: 48 89 ec                    	movq	%rbp, %rsp
+140001014: 5d                          	popq	%rbp
+140001015: c3                          	retq
+140001016: cc                          	int3
+140001017: cc                          	int3
+140001018: cc                          	int3
+140001019: cc                          	int3
+14000101a: cc                          	int3
+14000101b: cc                          	int3
+14000101c: cc                          	int3
+14000101d: cc                          	int3
+14000101e: cc                          	int3
+14000101f: cc                          	int3
+140001020: 56                          	pushq	%rsi
+140001021: 57                          	pushq	%rdi
+140001022: 48 83 ec 28                 	subq	$0x28, %rsp
+140001026: 48 85 d2                    	testq	%rdx, %rdx
+140001029: 74 65                       	je	0x140001090 <.text+0x90>
+14000102b: 48 89 d6                    	movq	%rdx, %rsi
+14000102e: 48 8b 4a 38                 	movq	0x38(%rdx), %rcx
+140001032: 48 85 c9                    	testq	%rcx, %rcx
+140001035: 74 59                       	je	0x140001090 <.text+0x90>
+140001037: 48 8d 15 aa 11 00 00        	leaq	0x11aa(%rip), %rdx      # 0x1400021e8
+14000103e: ff 51 08                    	callq	*0x8(%rcx)
+140001041: 48 8b 4e 38                 	movq	0x38(%rsi), %rcx
+140001045: 48 8d 3d b4 0f 00 00        	leaq	0xfb4(%rip), %rdi       # 0x140002000
+14000104c: 48 89 fa                    	movq	%rdi, %rdx
+14000104f: ff 51 08                    	callq	*0x8(%rcx)
+140001052: 48 8b 4e 38                 	movq	0x38(%rsi), %rcx
+140001056: 48 8d 15 11 11 00 00        	leaq	0x1111(%rip), %rdx      # 0x14000216e
+14000105d: ff 51 08                    	callq	*0x8(%rcx)
+140001060: 48 8b 4e 38                 	movq	0x38(%rsi), %rcx
+140001064: 48 8d 15 0f 10 00 00        	leaq	0x100f(%rip), %rdx      # 0x14000207a
+14000106b: ff 51 08                    	callq	*0x8(%rcx)
+14000106e: 48 8b 4e 38                 	movq	0x38(%rsi), %rcx
+140001072: 48 8d 15 7b 10 00 00        	leaq	0x107b(%rip), %rdx      # 0x1400020f4
+140001079: ff 51 08                    	callq	*0x8(%rcx)
+14000107c: 48 8b 4e 38                 	movq	0x38(%rsi), %rcx
+140001080: 48 89 fa                    	movq	%rdi, %rdx
+140001083: ff 51 08                    	callq	*0x8(%rcx)
+140001086: 66 2e 0f 1f 84 00 00 00 00 00       	nopw	%cs:(%rax,%rax)
+140001090: f4                          	hlt
+140001091: eb fd                       	jmp	0x140001090 <.text+0x90>
+
+=== PYTHON REGRESSION TESTS ===
+test_elf64_header (test_pe_inspector.InspectorTests.test_elf64_header) ... ok
+test_pe32_plus_header (test_pe_inspector.InspectorTests.test_pe32_plus_header) ... ok
+test_reject_truncated_pe (test_pe_inspector.InspectorTests.test_reject_truncated_pe) ... ok
+test_reject_wrong_elf_class (test_pe_inspector.InspectorTests.test_reject_wrong_elf_class) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK
+
+=== AUDIT SUMMARY ===
+AUDIT_COMMANDS=PASS
+NOTE: Structural checks do not establish runtime safety,
+firmware compatibility, signature validity, or boot success.

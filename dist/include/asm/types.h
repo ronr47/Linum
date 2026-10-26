@@ -1,6 +1,5 @@
 #ifndef _ASM_X86_TYPES_H
 #define _ASM_X86_TYPES_H
-
 typedef unsigned short umode_t;
 typedef signed char __s8;
 typedef unsigned char __u8;
@@ -10,5 +9,4 @@ typedef signed int __s32;
 typedef unsigned int __u32;
 typedef signed long long __s64;
 typedef unsigned long long __u64;
-
-#endif /* _ASM_X86_TYPES_H */
+#endif

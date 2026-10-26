@@ -19,6 +19,7 @@ class C99Emitter:
             "#include <stdint.h>",
             "#include <stdbool.h>",
             "#include <stddef.h>",
+            "#include <string.h>",
             "",
             "/* Memory Barrier Invariants */",
             "#if defined(__GNUC__) || defined(__clang__)",
@@ -60,7 +61,11 @@ class C99Emitter:
         param_list = [f"uintptr_t {p.name}" for p in fn.params]
         proto = f"uint32_t {fn.name}({', '.join(param_list)})"
         
-        lines = [f"{proto} {{"]
+        lines = [proto + " {"]
+        stack_arrays = getattr(fn, "stack_arrays", {})
+        for name, size in stack_arrays.items():
+            lines.append(f"    uint8_t stack_{name}[{size}];")
+            lines.append(f"    memset(stack_{name}, 0, {size});")
         
         # Collect all virtual registers
         registers: Set[str] = set()
@@ -79,7 +84,8 @@ class C99Emitter:
                         if isinstance(a, Reg):
                             registers.add(a.name)
 
-        local_registers = sorted(registers - param_names)
+        stack_names = {f"stack_{name}" for name in stack_arrays.keys()}
+        local_registers = sorted(registers - param_names - stack_names)
         for reg in local_registers:
             # Use uintptr_t for registers to store both 32-bit values and 64-bit pointers cleanly
             lines.append(f"    uintptr_t {reg} = 0;")
@@ -97,10 +103,16 @@ class C99Emitter:
         return "\n".join(lines)
 
     def _fmt_op(self, op: Operand) -> str:
+        if op is None:
+            return "0ULL"
         if isinstance(op, Reg):
             return op.name
         elif isinstance(op, Const):
-            return f"0x{op.value:X}ULL" if op.value > 9 else f"{op.value}ULL"
+            if op.value is None or str(op.value) == "None":
+                return "0ULL"
+            return f"0x{op.value:X}ULL" if isinstance(op.value, int) and op.value > 9 else f"{op.value}ULL"
+        if str(op) == "None":
+            return "0ULL"
         return str(op)
 
     def _emit_inst(self, inst: Instruction) -> str:
@@ -113,23 +125,28 @@ class C99Emitter:
                 return f"{inst.dest.name} = (uintptr_t)(&({self._fmt_op(inst.src)}))"
             return f"{inst.dest.name} = (uintptr_t)({inst.op}({self._fmt_op(inst.src)}))"
         elif isinstance(inst, RamLoad):
-            # Check if this load is an array indexing or single byte load
+            addr_calc = f"((const uint8_t*)((uintptr_t)({self._fmt_op(inst.addr)})) + {inst.offset})"
             if "val" in inst.dest.name or "byte" in inst.dest.name:
-                return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint8_t*)({self._fmt_op(inst.addr)} + {inst.offset})))"
-            return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})))"
+                return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint8_t*){addr_calc}))"
+            if "base" in inst.dest.name or "addr" in inst.dest.name or "slot" in inst.dest.name:
+                return f"{inst.dest.name} = (uintptr_t)(*((volatile const uintptr_t*)(const void*){addr_calc}))"
+            return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint32_t*)(const void*){addr_calc}))"
         elif isinstance(inst, RamStore):
             return f"*((volatile uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})) = (uint32_t)({self._fmt_op(inst.src)})"
         elif isinstance(inst, MmioLoad):
-            return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})))"
+            addr_calc = f"((const uint8_t*)((uintptr_t)({self._fmt_op(inst.addr)})) + {inst.offset})"
+            if "base" in inst.dest.name or "addr" in inst.dest.name or "slot" in inst.dest.name:
+                return f"{inst.dest.name} = (uintptr_t)(*((volatile const uintptr_t*)(const void*){addr_calc}))"
+            return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint32_t*)(const void*){addr_calc}))"
         elif isinstance(inst, MmioStore):
             return f"*((volatile uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})) = (uint32_t)({self._fmt_op(inst.src)})"
         elif isinstance(inst, MmioBarrier):
             return "R2_DMB()"
         elif isinstance(inst, Call):
             args_str = ", ".join(f"(uintptr_t)({self._fmt_op(a)})" for a in inst.args)
-            if inst.dest:
-                return f"{inst.dest.name} = (uintptr_t)({inst.callee}({args_str}))"
-            return f"{inst.callee}({args_str})"
+            if inst.dest is None:
+                return f"{inst.callee}({args_str})"
+            return f"{self._fmt_op(inst.dest)} = (uintptr_t)({inst.callee}({args_str}))"
         elif isinstance(inst, Jump):
             return f"goto {inst.target}"
         elif isinstance(inst, BranchIf):

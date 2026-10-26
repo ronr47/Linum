@@ -12,7 +12,6 @@ CLANG_INC=$(clang -print-resource-dir)/include
 
 clang -target x86_64-unknown-linux-gnu \
       -static \
-      -no-pie \
       -nostdinc \
       -nostdlib \
       -fno-builtin \
@@ -27,4 +26,4 @@ file proofboot_runner_x86_64
 qemu-x86_64 ./proofboot_runner_x86_64
 
 echo ""
-echo "[OK] Multi-device verification passed (AArch64 + x86_64) without host glibc dependencies!"
+echo "[OK] Multi-device verification passed (AArch64 + x86_64)!"

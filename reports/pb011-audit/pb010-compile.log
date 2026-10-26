@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/data/data/com.termux/files/home/linum/src/cli/r2c_stage0.py", line 38, in <module>
+    inspect_source(Path(sys.argv[1]))
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/linum/src/cli/r2c_stage0.py", line 20, in inspect_source
+    mod = parser.parse_module()
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 40, in parse_module
+    parts.append(self._expect(TokenType.IDENT).value)
+                 ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/data/data/com.termux/files/home/linum/src/frontend/parser.py", line 31, in _expect
+    raise SyntaxError(f"Expected {token_type.name} at line {t.line}:{t.col}, got {t.type.name} ({t.value})")
+SyntaxError: Expected IDENT at line 4:23, got SEMICOLON (;)

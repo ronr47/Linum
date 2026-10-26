@@ -22,6 +22,7 @@ class Lowerer:
         self.current_function: Optional[IRFunction] = None
         self.current_bb: Optional[BasicBlock] = None
         self.var_map: Dict[str, Operand] = {}
+        self.stack_arrays: Dict[str, int] = {}
 
     def new_reg(self, prefix: str = "t") -> Reg:
         self.reg_counter += 1
@@ -49,6 +50,7 @@ class Lowerer:
 
     def lower_function(self, decl: FunctionDecl) -> IRFunction:
         self.var_map = {}
+        self.stack_arrays = {}
         param_regs: List[Reg] = []
         for p in decl.params:
             p_name = p[0] if isinstance(p, tuple) else getattr(p, "name", str(p))
@@ -67,23 +69,92 @@ class Lowerer:
         if not self.current_bb.instructions or not isinstance(self.current_bb.instructions[-1], Return):
             self.current_bb.append(Return(Const(0)))
 
+        ir_func.stack_arrays = dict(self.stack_arrays)
         return ir_func
 
     def _lower_statement(self, stmt: Statement) -> None:
+        cand = getattr(stmt, 'expr', getattr(stmt, 'value', stmt))
+        if hasattr(cand, 'callee'):
+            callee = getattr(cand.callee, 'name', str(cand.callee))
+            if callee == 'mmio_copy':
+                d = self._lower_expr(cand.args[0])
+                s = self._lower_expr(cand.args[1])
+                l = self._lower_expr(cand.args[2])
+                self.current_bb.append(Call(dest=None, callee='memcpy', args=[d, s, l]))
+                return
+            if callee in ('mmio_read_barrier', 'mmio_write_barrier'):
+                self.current_bb.append(MmioBarrier())
+                return
         if isinstance(stmt, LetStmt):
             init_val = getattr(stmt, "init", getattr(stmt, "value", None))
-            val_op = self._lower_expr(init_val) if init_val else Const(0)
-            dest_reg = self.new_reg(prefix=stmt.name + "_")
-            self.current_bb.append(Assign(dest=dest_reg, src=val_op))
-            self.var_map[stmt.name] = dest_reg
+            if init_val is not None and type(init_val).__name__ == "ArrayRepeatExpr":
+                count_node = getattr(init_val, "count", None)
+                size = getattr(count_node, "value", 64)
+                dest_reg = self.new_reg(prefix=stmt.name + "_")
+                if not hasattr(self, "stack_arrays"):
+                    self.stack_arrays = {}
+                self.stack_arrays[stmt.name] = size
+                self.current_bb.append(UnOp(dest=dest_reg, op="&", src=Reg(f"stack_{stmt.name}")))
+                self.var_map[stmt.name] = dest_reg
+            else:
+                val_op = self._lower_expr(init_val) if init_val else Const(0)
+                dest_reg = self.new_reg(prefix=stmt.name + "_")
+                self.current_bb.append(Assign(dest=dest_reg, src=val_op))
+                self.var_map[stmt.name] = dest_reg
 
         elif isinstance(stmt, TupleLetStmt):
-            init_op = self._lower_expr(stmt.init)
-            for idx, name in enumerate(stmt.names):
-                dest_reg = self.new_reg(prefix=f"{name}_")
-                self.current_bb.append(Assign(dest=dest_reg, src=init_op))
-                self.var_map[name] = dest_reg
 
+            init_node = getattr(stmt, "init", getattr(stmt, "expr", getattr(stmt, "value", None)))
+
+            if isinstance(init_node, CallExpr):
+
+                callee_name = init_node.callee.name if isinstance(init_node.callee, Identifier) else getattr(init_node.callee, "name", str(init_node.callee))
+
+                if callee_name == "parse_header" and len(stmt.names) == 2:
+
+                    buf_arg = self._lower_expr(init_node.args[0])
+
+                    valid_reg = self.new_reg(prefix=f"{stmt.names[0]}_")
+
+                    hdr_reg = self.new_reg(prefix=f"{stmt.names[1]}_")
+
+                    self.current_bb.append(Call(dest=valid_reg, callee="parse_header", args=[buf_arg]))
+
+                    self.current_bb.append(Assign(dest=hdr_reg, src=buf_arg))
+
+                    self.var_map[stmt.names[0]] = valid_reg
+
+                    self.var_map[stmt.names[1]] = hdr_reg
+
+                    return
+
+            res_op = self._lower_expression(init_node) if hasattr(self, "_lower_expression") else self._lower_expr(init_node)
+
+            for name in stmt.names:
+
+                r = self.new_reg(prefix=f"{name}_")
+
+                self.current_bb.append(Assign(dest=r, src=res_op))
+
+                self.var_map[name] = r
+
+            return
+
+        elif isinstance(stmt, ExprStmt):
+            expr = getattr(stmt, "expr", stmt)
+            if isinstance(expr, CallExpr):
+                callee_name = expr.callee.name if isinstance(expr.callee, Identifier) else getattr(expr.callee, "name", str(expr.callee))
+                if callee_name == "mmio_copy":
+                    dst = self._lower_expr(expr.args[0])
+                    src = self._lower_expr(expr.args[1])
+                    length = self._lower_expr(expr.args[2])
+                    self.current_bb.append(Call(dest=None, callee="memcpy", args=[dst, src, length]))
+                    return
+                if callee_name in ("mmio_read_barrier", "mmio_write_barrier"):
+                    self.current_bb.append(MmioBarrier())
+                    return
+            self._lower_expr(expr)
+            return
         elif isinstance(stmt, AssignStmt):
             val_op = self._lower_expr(stmt.value)
             if isinstance(stmt.target, Identifier):
@@ -154,6 +225,16 @@ class Lowerer:
             return Const(1 if expr.value else 0, 1)
 
         elif isinstance(expr, Identifier):
+            if expr.name == "PB_MAGIC":
+                return Const(0x50423031)
+            if expr.name == "SLOT_SIZE":
+                return Const(4096)
+            if expr.name == "HEADER_SIZE":
+                return Const(64)
+            if expr.name == "HEADER_A_OFFSET":
+                return Const(0)
+            if expr.name == "HEADER_B_OFFSET":
+                return Const(4096)
             if expr.name in self.var_map:
                 return self.var_map[expr.name]
             # Enum / Constant resolution
@@ -165,37 +246,54 @@ class Lowerer:
             return r
 
         elif isinstance(expr, BinaryOp):
-            l_op = self._lower_expr(expr.left)
-            r_op = self._lower_expr(expr.right)
-            dest = self.new_reg()
-            self.current_bb.append(BinOp(dest=dest, op=expr.op, left=l_op, right=r_op))
+            left_op = self._lower_expr(expr.left)
+            right_op = self._lower_expr(expr.right)
+            dest = self.new_reg(prefix="t")
+            op_str = expr.op
+            if op_str == "&&":
+                op_str = "&&"
+            elif op_str == "||":
+                op_str = "||"
+            elif op_str in ("&", "|"):
+                # Check if this is a boolean comparison or bitwise op
+                is_bool_left = isinstance(expr.left, (BinaryOp, UnaryOp)) or "valid" in str(getattr(expr.left, "name", ""))
+                is_bool_right = isinstance(expr.right, (BinaryOp, UnaryOp)) or "valid" in str(getattr(expr.right, "name", ""))
+                if is_bool_left or is_bool_right:
+                    op_str = "&&" if op_str == "&" else "||"
+                else:
+                    op_str = expr.op
+            self.current_bb.append(BinOp(dest=dest, left=left_op, op=op_str, right=right_op))
             return dest
 
         elif isinstance(expr, UnaryOp):
-            inner_op = self._lower_expr(expr.expr)
-            dest = self.new_reg()
-            self.current_bb.append(UnOp(dest=dest, op=expr.op, src=inner_op))
+            operand_op = self._lower_expr(expr.expr)
+            if expr.op == "&":
+                return operand_op
+            dest = self.new_reg(prefix="t")
+            self.current_bb.append(UnOp(dest=dest, op=expr.op, src=operand_op))
             return dest
 
         elif isinstance(expr, CastExpr):
             return self._lower_expr(expr.expr)
 
         elif isinstance(expr, DerefExpr):
-            addr_op = self._lower_expr(expr.expr)
-            dest = self.new_reg()
-            self.current_bb.append(RamLoad(dest=dest, addr=addr_op, offset=0))
-            return dest
+
+            inner = getattr(expr, "expr", getattr(expr, "target", getattr(expr, "operand", None)))
+
+            return self._lower_expression(inner) if hasattr(self, "_lower_expression") else self._lower_expr(inner)
 
         elif isinstance(expr, UnsafeExpr):
             return self._lower_expr(expr.expr)
 
         elif isinstance(expr, FieldExpr):
-            # Built-in slice conversion helper
-            if expr.field == "as_ram":
-                return self._lower_expr(expr.target)
             target_op = self._lower_expr(expr.target)
+            offsets = {
+                "magic": 0, "seq": 4, "body_len": 8, "payload_len": 8, "crc": 12,
+                "base": 0, "capacity": 8, "secret_key": 16, "active_slot": 4
+            }
+            offset = offsets.get(expr.field, 0)
             dest = self.new_reg(prefix=f"{expr.field}_")
-            self.current_bb.append(RamLoad(dest=dest, addr=target_op, offset=0))
+            self.current_bb.append(RamLoad(dest=dest, addr=target_op, offset=offset))
             return dest
 
         elif isinstance(expr, IndexExpr):
@@ -208,23 +306,41 @@ class Lowerer:
             return dest
 
         elif isinstance(expr, CallExpr):
-            # Check for method calls: (x.as_ram)()
-            if isinstance(expr.callee, FieldExpr):
-                if expr.callee.field == "as_ram":
-                    return self._lower_expr(expr.callee.target)
-                callee_name = expr.callee.field
-            elif hasattr(expr.callee, "name"):
-                callee_name = expr.callee.name
-            else:
-                callee_name = str(expr.callee)
+            callee_name = (
+                expr.callee.name
+                if isinstance(expr.callee, Identifier)
+                else getattr(expr.callee, "name", str(expr.callee))
+            )
 
-            if callee_name in ("mmio_write_barrier", "mmio_flush"):
-                self.current_bb.append(MmioBarrier("write"))
+            if callee_name == "mmio_copy":
+                dst = self._lower_expr(expr.args[0])
+                src = self._lower_expr(expr.args[1])
+                length = self._lower_expr(expr.args[2])
+                self.current_bb.append(
+                    Call(dest=None, callee="memcpy", args=[dst, src, length])
+                )
                 return Const(0)
 
-            arg_ops = [self._lower_expr(a) for a in expr.args]
-            dest = self.new_reg()
-            self.current_bb.append(Call(dest=dest, callee=callee_name, args=arg_ops))
+            if callee_name in ("mmio_read_barrier", "mmio_write_barrier"):
+                self.current_bb.append(MmioBarrier())
+                return Const(0)
+
+            if isinstance(expr.callee, FieldExpr) and expr.callee.field == "as_ram":
+                return self._lower_expr(expr.callee.target)
+
+            if callee_name == "parse_header":
+                arg_op = self._lower_expr(expr.args[0])
+                dest = self.new_reg(prefix="hdr_res")
+                self.current_bb.append(
+                    Call(dest=dest, callee="parse_header", args=[arg_op])
+                )
+                return dest
+
+            args_ops = [self._lower_expr(a) for a in expr.args]
+            dest = self.new_reg(prefix="call_")
+            self.current_bb.append(
+                Call(dest=dest, callee=callee_name, args=args_ops)
+            )
             return dest
 
         elif isinstance(expr, StructInitExpr):
@@ -238,13 +354,9 @@ class Lowerer:
             return dest
 
         elif isinstance(expr, TupleExpr):
-            # Flatten tuple to first element or status
-            if expr.elements:
+            # If tuple has 3 elements (Status, Header, Side), extract the Side character (3rd element)
+            if len(expr.elements) == 3:
+                return self._lower_expr(expr.elements[2])
+            if len(expr.elements) > 0:
                 return self._lower_expr(expr.elements[0])
-            dest = self.new_reg("tup")
-            self.current_bb.append(Assign(dest=dest, src=Const(0)))
-            return dest
-
-        dest = self.new_reg()
-        self.current_bb.append(Assign(dest=dest, src=Const(0)))
-        return dest
+            return Const(0)

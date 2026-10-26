@@ -1,0 +1,780 @@
+=== AUDIT ENVIRONMENT ===
+2026-10-26T09:46:23+10:00
+Python 3.14.8
+40ace10360d6b07344aa82acc7b5436ec76820c9
+
+=== RECENT HISTORY ===
+40ace10 (HEAD -> main) feat(compiler): deliver PB-011 Stage 0 R2 lexer, AST, and parser for PB-010 contracts
+2d6a065 feat(proofboot): complete PB-010 arbitration test suite and invariant bridge
+24439fb feat(proofboot): add hybrid container layout regression test and stage PB-010 R2 engine
+7ded123 feat(proofboot): complete PB-009 dual-header redundant arbitration and torn-write fallback
+b39b939 feat(proofboot): complete PB-008 dual-bank NVRAM emulation and atomic slot toggling
+492de54 feat(proofboot): complete PB-007 cryptographic envelope binding and bit-rot tamper detection
+670eb71 feat(proofboot): complete PB-006 multi-process durable transitions and failure injection
+dbd7a59 feat(proofboot): baseline workspace with passing PB-003 through PB-005 hardening tests
+
+=== COMPILER FILES ===
+src/ast/__init__.py
+src/ast/nodes.py
+src/frontend/__init__.py
+src/frontend/lexer.py
+src/frontend/parser.py
+tests/__init__.py
+tests/test_hybrid_invariants.py
+tests/test_pe_inspector.py
+tests/test_proofboot_pb003.py
+tests/test_proofboot_pb004.py
+tests/test_proofboot_pb005.py
+tests/test_proofboot_pb005_hardening.py
+tests/test_proofboot_pb006.py
+tests/test_proofboot_pb007.py
+tests/test_proofboot_pb008.py
+tests/test_proofboot_pb009.py
+tests/test_proofboot_pb010.py
+tests/test_stage0_parser.py
+
+=== PARSER ===
+"""Stage 0 R2 Recursive-Descent Parser."""
+
+from typing import List, Optional
+from src.frontend.lexer import Token, TokenType
+from src.ast.nodes import (
+    TypeRef, Expression, IntLiteral, ByteLiteral, BoolLiteral, Identifier,
+    BinaryOp, UnaryOp, CastExpr, CallExpr, IndexExpr, FieldExpr,
+    Statement, LetStmt, AssignStmt, WhileStmt, IfStmt, ReturnStmt,
+    Contract, FunctionDecl, StructDecl, StructField, Module
+)
+
+
+class Parser:
+    def __init__(self, tokens: List[Token]):
+        self.tokens = tokens
+        self.pos = 0
+
+    def _peek(self, offset: int = 0) -> Token:
+        idx = self.pos + offset
+        return self.tokens[idx] if idx < len(self.tokens) else self.tokens[-1]
+
+    def _match(self, *types: TokenType) -> bool:
+        if self._peek().type in types:
+            self.pos += 1
+            return True
+        return False
+
+    def _expect(self, token_type: TokenType) -> Token:
+        t = self._peek()
+        if t.type != token_type:
+            raise SyntaxError(f"Expected {token_type.name} at line {t.line}:{t.col}, got {t.type.name} ({t.value})")
+        self.pos += 1
+        return t
+
+    def parse_module(self) -> Module:
+        mod_name = "main"
+        if self._match(TokenType.MODULE):
+            parts = []
+            while True:
+                parts.append(self._expect(TokenType.IDENT).value)
+                if self._match(TokenType.IDENT): # handle dot separated if tokenized
+                    continue
+                # Check for module separator
+                if self._peek().value == ".":
+                    self.pos += 1
+                    continue
+                break
+            self._expect(TokenType.SEMICOLON)
+            mod_name = ".".join(parts)
+
+        decls = []
+        while self._peek().type != TokenType.EOF:
+            # Skip top-level attributes #[packed, repr(C)]
+            if self._peek().type == TokenType.ATTR:
+                self.pos += 1
+                self._expect(TokenType.LBRACKET)
+                while self._peek().type not in (TokenType.RBRACKET, TokenType.EOF):
+                    self.pos += 1
+                self._expect(TokenType.RBRACKET)
+
+            tok = self._peek()
+            if tok.type == TokenType.FN:
+                decls.append(self._parse_function())
+            elif tok.type == TokenType.STRUCT:
+                decls.append(self._parse_struct())
+            elif tok.type in (TokenType.CONST, TokenType.ENUM):
+                # Consume declarations to next closing brace or semicolon
+                self._skip_to_stmt_end()
+            else:
+                self.pos += 1
+
+        return Module(name=mod_name, declarations=decls)
+
+    def _skip_to_stmt_end(self):
+        depth = 0
+        while self._peek().type != TokenType.EOF:
+            if self._peek().type == TokenType.LBRACE:
+                depth += 1
+            elif self._peek().type == TokenType.RBRACE:
+                depth -= 1
+                if depth == 0:
+                    self.pos += 1
+                    return
+            elif self._peek().type == TokenType.SEMICOLON and depth == 0:
+                self.pos += 1
+                return
+            self.pos += 1
+
+    def _parse_type(self) -> TypeRef:
+        # Check domain types: ram<T>, mmio<T>, ioport<T>, cap<T>
+        if self._peek().type in (TokenType.RAM, TokenType.MMIO, TokenType.IOPORT, TokenType.CAP):
+            domain = self._peek().value.lower()
+            self.pos += 1
+            self._expect(TokenType.LANGLE)
+            inner = self._parse_type()
+            self._expect(TokenType.RANGLE)
+            return TypeRef(name=inner.name, domain=domain)
+
+        # Array [T; N]
+        if self._match(TokenType.LBRACKET):
+            elem = self._parse_type()
+            self._expect(TokenType.SEMICOLON)
+            sz_tok = self._expect(TokenType.INT_LIT)
+            self._expect(TokenType.RBRACKET)
+            return TypeRef(name=elem.name, is_array=True, array_size=sz_tok.value)
+
+        tok = self._expect(TokenType.IDENT)
+        return TypeRef(name=tok.value)
+
+    def _parse_struct(self) -> StructDecl:
+        self._expect(TokenType.STRUCT)
+        name = self._expect(TokenType.IDENT).value
+        self._expect(TokenType.LBRACE)
+        fields = []
+        while self._peek().type not in (TokenType.RBRACE, TokenType.EOF):
+            f_name = self._expect(TokenType.IDENT).value
+            self._expect(TokenType.COLON)
+            t_ref = self._parse_type()
+            self._expect(TokenType.COMMA)
+            fields.append(StructField(name=f_name, type_ref=t_ref))
+        self._expect(TokenType.RBRACE)
+        return StructDecl(name=name, fields=fields)
+
+    def _parse_function(self) -> FunctionDecl:
+        self._expect(TokenType.FN)
+        name = self._expect(TokenType.IDENT).value
+        self._expect(TokenType.LPAREN)
+        params = []
+        while self._peek().type not in (TokenType.RPAREN, TokenType.EOF):
+            p_name = self._expect(TokenType.IDENT).value
+            self._expect(TokenType.COLON)
+            p_type = self._parse_type()
+            params.append((p_name, p_type))
+            if not self._match(TokenType.COMMA):
+                break
+        self._expect(TokenType.RPAREN)
+
+        ret_type = None
+        if self._match(TokenType.ARROW):
+            # Check for tuple or single return type
+            if self._match(TokenType.LPAREN):
+                self._parse_type()
+                while self._match(TokenType.COMMA):
+                    self._parse_type()
+                self._expect(TokenType.RPAREN)
+                ret_type = TypeRef(name="tuple")
+            else:
+                ret_type = self._parse_type()
+
+        # Parse Contracts (pre:, post:, preserves:)
+        contracts = []
+        while self._peek().type in (TokenType.PRE, TokenType.POST, TokenType.PRESERVES):
+            kind_tok = self._peek()
+            self.pos += 1
+            self._expect(TokenType.COLON)
+            # Consume contract expression up to next contract or {
+            expr_tokens = []
+            while self._peek().type not in (TokenType.PRE, TokenType.POST, TokenType.PRESERVES, TokenType.LBRACE, TokenType.EOF):
+                expr_tokens.append(self._peek().value)
+                self.pos += 1
+            contracts.append(Contract(kind=kind_tok.value, expr=" ".join(str(v) for v in expr_tokens)))
+
+        # Parse body
+        body = []
+        self._expect(TokenType.LBRACE)
+        while self._peek().type not in (TokenType.RBRACE, TokenType.EOF):
+            stmt = self._parse_statement()
+            if stmt:
+                body.append(stmt)
+        self._expect(TokenType.RBRACE)
+
+        return FunctionDecl(name=name, params=params, return_type=ret_type, contracts=contracts, body=body)
+
+    def _parse_statement(self) -> Optional[Statement]:
+        tok = self._peek()
+
+        if self._match(TokenType.LET) or self._match(TokenType.VAR):
+            is_var = (tok.type == TokenType.VAR)
+            name = self._expect(TokenType.IDENT).value
+            t_ref = None
+            if self._match(TokenType.COLON):
+                t_ref = self._parse_type()
+            self._expect(TokenType.ASSIGN)
+            init_expr = self._parse_expr()
+            self._expect(TokenType.SEMICOLON)
+            return LetStmt(name=name, type_ref=t_ref, init=init_expr, is_var=is_var)
+
+        if self._match(TokenType.WHILE):
+            cond = self._parse_expr()
+            self._expect(TokenType.LBRACE)
+            body = []
+            while self._peek().type not in (TokenType.RBRACE, TokenType.EOF):
+                s = self._parse_statement()
+                if s: body.append(s)
+            self._expect(TokenType.RBRACE)
+            return WhileStmt(cond=cond, body=body)
+
+        if self._match(TokenType.IF):
+            cond = self._parse_expr()
+            self._expect(TokenType.LBRACE)
+            then_b = []
+            while self._peek().type not in (TokenType.RBRACE, TokenType.EOF):
+                s = self._parse_statement()
+                if s: then_b.append(s)
+            self._expect(TokenType.RBRACE)
+            else_b = None
+            if self._match(TokenType.ELSE):
+                self._expect(TokenType.LBRACE)
+                else_b = []
+                while self._peek().type not in (TokenType.RBRACE, TokenType.EOF):
+                    s = self._parse_statement()
+                    if s: else_b.append(s)
+                self._expect(TokenType.RBRACE)
+            return IfStmt(cond=cond, then_branch=then_b, else_branch=else_b)
+
+        if self._match(TokenType.RETURN):
+            expr = None
+            if self._peek().type != TokenType.SEMICOLON:
+                expr = self._parse_expr()
+            self._expect(TokenType.SEMICOLON)
+            return ReturnStmt(expr=expr)
+
+        # Expression statement or assignment
+        expr = self._parse_expr()
+        if self._match(TokenType.ASSIGN):
+            val = self._parse_expr()
+            self._expect(TokenType.SEMICOLON)
+            return AssignStmt(target=expr, value=val)
+
+        self._match(TokenType.SEMICOLON)
+        return None
+
+    def _parse_expr(self) -> Expression:
+        return self._parse_relational()
+
+    def _parse_relational(self) -> Expression:
+        expr = self._parse_additive()
+        while self._peek().type in (TokenType.EQ, TokenType.NEQ, TokenType.LE, TokenType.GE, TokenType.LANGLE, TokenType.RANGLE):
+            op = self._peek().value
+            self.pos += 1
+            right = self._parse_additive()
+            expr = BinaryOp(left=expr, op=op, right=right)
+        return expr
+
+    def _parse_additive(self) -> Expression:
+        expr = self._parse_bitwise()
+        while self._peek().type in (TokenType.ADD, TokenType.SUB):
+            op = self._peek().value
+            self.pos += 1
+            right = self._parse_bitwise()
+            expr = BinaryOp(left=expr, op=op, right=right)
+        return expr
+
+    def _parse_bitwise(self) -> Expression:
+        expr = self._parse_unary()
+        while self._peek().type in (TokenType.BIT_OR, TokenType.BIT_AND, TokenType.BIT_XOR, TokenType.SHL, TokenType.SHR):
+            op = self._peek().value
+            self.pos += 1
+            right = self._parse_unary()
+            expr = BinaryOp(left=expr, op=op, right=right)
+        return expr
+
+    def _parse_unary(self) -> Expression:
+        if self._peek().type in (TokenType.BIT_NOT, TokenType.NOT, TokenType.SUB):
+            op = self._peek().value
+            self.pos += 1
+            return UnaryOp(op=op, expr=self._parse_unary())
+        return self._parse_primary()
+
+    def _parse_primary(self) -> Expression:
+        tok = self._peek()
+
+        if self._match(TokenType.INT_LIT):
+            return IntLiteral(value=tok.value)
+        if self._match(TokenType.BYTE_LIT):
+            return ByteLiteral(value=tok.value)
+        if self._match(TokenType.BOOL_LIT):
+            return BoolLiteral(value=tok.value)
+
+        if self._match(TokenType.IDENT):
+
+=== AST ===
+"""AST node definitions for R2 Core."""
+
+from dataclasses import dataclass
+from typing import List, Optional, Any
+
+
+@dataclass
+class TypeRef:
+    name: str
+    domain: Optional[str] = None  # 'ram', 'mmio', 'ioport', 'cap'
+    is_array: bool = False
+    array_size: Optional[int] = None
+
+
+@dataclass
+class Expression:
+    pass
+
+
+@dataclass
+class IntLiteral(Expression):
+    value: int
+
+
+@dataclass
+class ByteLiteral(Expression):
+    value: int
+
+
+@dataclass
+class BoolLiteral(Expression):
+    value: bool
+
+
+@dataclass
+class Identifier(Expression):
+    name: str
+
+
+@dataclass
+class BinaryOp(Expression):
+    left: Expression
+    op: str
+    right: Expression
+
+
+@dataclass
+class UnaryOp(Expression):
+    op: str
+    expr: Expression
+
+
+@dataclass
+class CastExpr(Expression):
+    expr: Expression
+    target_type: TypeRef
+
+
+@dataclass
+class CallExpr(Expression):
+    callee: str
+    args: List[Expression]
+
+
+@dataclass
+class IndexExpr(Expression):
+    target: Expression
+    index: Expression
+
+
+@dataclass
+class FieldExpr(Expression):
+    target: Expression
+    field: str
+
+
+@dataclass
+class Statement:
+    pass
+
+
+@dataclass
+class LetStmt(Statement):
+    name: str
+    type_ref: Optional[TypeRef]
+    init: Expression
+    is_var: bool = False
+
+
+@dataclass
+class AssignStmt(Statement):
+    target: Expression
+    value: Expression
+
+
+@dataclass
+class WhileStmt(Statement):
+    cond: Expression
+    body: List[Statement]
+
+
+@dataclass
+class IfStmt(Statement):
+    cond: Expression
+    then_branch: List[Statement]
+    else_branch: Optional[List[Statement]] = None
+
+
+@dataclass
+class ReturnStmt(Statement):
+    expr: Optional[Expression]
+
+
+@dataclass
+class Contract:
+    kind: str  # 'pre', 'post', 'preserves'
+    expr: Any
+
+
+@dataclass
+class FunctionDecl:
+    name: str
+    params: List[tuple[str, TypeRef]]
+    return_type: Optional[TypeRef]
+    contracts: List[Contract]
+    body: List[Statement]
+
+
+@dataclass
+class StructField:
+    name: str
+    type_ref: TypeRef
+
+
+@dataclass
+class StructDecl:
+    name: str
+    fields: List[StructField]
+    is_packed: bool = False
+
+
+@dataclass
+class Module:
+    name: str
+    declarations: List[Any]
+
+=== LEXER ===
+"""Stage 0 R2 Lexer: Explicit systems syntax tokenization."""
+
+import enum
+import re
+from typing import List, NamedTuple, Optional
+
+
+class TokenType(enum.Enum):
+    # Keywords
+    MODULE = "MODULE"
+    CONST = "CONST"
+    ENUM = "ENUM"
+    STRUCT = "STRUCT"
+    FN = "FN"
+    LET = "LET"
+    VAR = "VAR"
+    IF = "IF"
+    ELSE = "ELSE"
+    WHILE = "WHILE"
+    RETURN = "RETURN"
+    UNSAFE = "UNSAFE"
+    AS = "AS"
+    PRE = "PRE"
+    POST = "POST"
+    PRESERVES = "PRESERVES"
+
+    # Memory Domain Specifiers
+    RAM = "RAM"
+    MMIO = "MMIO"
+    IOPORT = "IOPORT"
+    CAP = "CAP"
+
+    # Literals & Identifiers
+    IDENT = "IDENT"
+    INT_LIT = "INT_LIT"
+    BYTE_LIT = "BYTE_LIT"
+    BOOL_LIT = "BOOL_LIT"
+
+    # Operators & Delimiters
+    LPAREN = "("
+    RPAREN = ")"
+    LBRACE = "{"
+    RBRACE = "}"
+    LBRACKET = "["
+    RBRACKET = "]"
+    LANGLE = "<"
+    RANGLE = ">"
+    COMMA = ","
+    COLON = ":"
+    SEMICOLON = ";"
+    ARROW = "->"
+    ATTR = "#"
+
+    # Arithmetic / Logical / Bitwise
+    ASSIGN = "="
+    EQ = "=="
+    NEQ = "!="
+    LE = "<="
+    GE = ">="
+    ADD = "+"
+    SUB = "-"
+    BIT_OR = "|"
+    BIT_AND = "&"
+    BIT_XOR = "^"
+    BIT_NOT = "~"
+    SHL = "<<"
+    SHR = ">>"
+    NOT = "!"
+
+    EOF = "EOF"
+
+
+class Token(NamedTuple):
+    type: TokenType
+    value: any
+    line: int
+    col: int
+
+
+KEYWORDS = {
+    "module": TokenType.MODULE,
+    "const": TokenType.CONST,
+    "enum": TokenType.ENUM,
+    "struct": TokenType.STRUCT,
+    "fn": TokenType.FN,
+    "let": TokenType.LET,
+    "var": TokenType.VAR,
+    "if": TokenType.IF,
+    "else": TokenType.ELSE,
+    "while": TokenType.WHILE,
+    "return": TokenType.RETURN,
+    "unsafe": TokenType.UNSAFE,
+    "as": TokenType.AS,
+    "pre": TokenType.PRE,
+    "post": TokenType.POST,
+    "preserves": TokenType.PRESERVES,
+    "ram": TokenType.RAM,
+    "mmio": TokenType.MMIO,
+    "ioport": TokenType.IOPORT,
+    "cap": TokenType.CAP,
+    "true": TokenType.BOOL_LIT,
+    "false": TokenType.BOOL_LIT,
+}
+
+
+class Lexer:
+    def __init__(self, source: str):
+        self.source = source
+        self.len = len(source)
+        self.pos = 0
+        self.line = 1
+        self.col = 1
+
+    def _peek(self, offset: int = 0) -> str:
+        idx = self.pos + offset
+        return self.source[idx] if idx < self.len else "\0"
+
+    def _advance(self) -> str:
+        ch = self._peek()
+        self.pos += 1
+        if ch == "\n":
+            self.line += 1
+            self.col = 1
+        else:
+            self.col += 1
+        return ch
+
+    def tokenize(self) -> List[Token]:
+        tokens: List[Token] = []
+
+        while self.pos < self.len:
+            ch = self._peek()
+
+            # Whitespace
+            if ch in " \t\r\n":
+                self._advance()
+                continue
+
+            # Line comments (//)
+            if ch == "/" and self._peek(1) == "/":
+                while self.pos < self.len and self._peek() != "\n":
+                    self._advance()
+                continue
+
+            start_col = self.col
+            start_line = self.line
+
+            # Byte literal b'A'
+            if ch == "b" and self._peek(1) == "'":
+                self._advance()  # b
+                self._advance()  # '
+                val = ord(self._advance())
+                if self._peek() == "'":
+                    self._advance()
+                tokens.append(Token(TokenType.BYTE_LIT, val, start_line, start_col))
+                continue
+
+            # Hex numbers 0x...
+            if ch == "0" and self._peek(1) in "xX":
+                num_str = ""
+                self._advance()  # 0
+                self._advance()  # x
+                while self._peek() in "0123456789abcdefABCDEF_":
+                    c = self._advance()
+                    if c != "_":
+                        num_str += c
+                tokens.append(Token(TokenType.INT_LIT, int(num_str, 16), start_line, start_col))
+                continue
+
+            # Decimal numbers
+            if ch.isdigit():
+                num_str = ""
+                while self._peek().isdigit() or self._peek() == "_":
+                    c = self._advance()
+                    if c != "_":
+                        num_str += c
+                tokens.append(Token(TokenType.INT_LIT, int(num_str, 10), start_line, start_col))
+                continue
+
+            # Identifiers and keywords
+            if ch.isalpha() or ch == "_":
+                ident = ""
+                while self._peek().isalnum() or self._peek() == "_":
+                    ident += self._advance()
+                if ident in KEYWORDS:
+                    val = True if ident == "true" else False if ident == "false" else ident
+                    tokens.append(Token(KEYWORDS[ident], val, start_line, start_col))
+                else:
+                    tokens.append(Token(TokenType.IDENT, ident, start_line, start_col))
+                continue
+
+            # Multi-character operators
+            if ch == "-" and self._peek(1) == ">":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.ARROW, "->", start_line, start_col))
+                continue
+            if ch == "=" and self._peek(1) == "=":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.EQ, "==", start_line, start_col))
+                continue
+            if ch == "!" and self._peek(1) == "=":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.NEQ, "!=", start_line, start_col))
+                continue
+            if ch == "<" and self._peek(1) == "=":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.LE, "<=", start_line, start_col))
+                continue
+            if ch == ">" and self._peek(1) == "=":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.GE, ">=", start_line, start_col))
+                continue
+            if ch == "<" and self._peek(1) == "<":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.SHL, "<<", start_line, start_col))
+                continue
+            if ch == ">" and self._peek(1) == ">":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.SHR, ">>", start_line, start_col))
+                continue
+
+            # Single-character tokens
+            single = {
+                "(": TokenType.LPAREN,
+                ")": TokenType.RPAREN,
+                "{": TokenType.LBRACE,
+                "}": TokenType.RBRACE,
+                "[": TokenType.LBRACKET,
+                "]": TokenType.RBRACKET,
+                "<": TokenType.LANGLE,
+                ">": TokenType.RANGLE,
+                ",": TokenType.COMMA,
+                ":": TokenType.COLON,
+                ";": TokenType.SEMICOLON,
+                "#": TokenType.ATTR,
+                "=": TokenType.ASSIGN,
+                "+": TokenType.ADD,
+                "-": TokenType.SUB,
+                "|": TokenType.BIT_OR,
+                "&": TokenType.BIT_AND,
+                "^": TokenType.BIT_XOR,
+                "~": TokenType.BIT_NOT,
+                "!": TokenType.NOT,
+            }
+            if ch in single:
+                self._advance()
+                tokens.append(Token(single[ch], ch, start_line, start_col))
+                continue
+
+            # Unknown byte skip
+            self._advance()
+
+        tokens.append(Token(TokenType.EOF, "", self.line, self.col))
+        return tokens
+
+=== STAGE 0 TESTS ===
+#!/usr/bin/env python3
+"""PB-011: Verification suite for Stage 0 R2 Lexer and Parser on proofboot_pb010.r2."""
+
+import unittest
+from pathlib import Path
+from src.frontend.lexer import Lexer, TokenType
+from src.frontend.parser import Parser
+
+PB010_PATH = Path(__file__).resolve().parent.parent / "proofboot_pb010.r2"
+
+
+class TestStage0Parser(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if not PB010_PATH.exists():
+            raise unittest.SkipTest(f"{PB010_PATH} not found")
+        with open(PB010_PATH, "r", encoding="utf-8") as f:
+            cls.source = f.read()
+
+    def test_lexer_tokenizes_memory_domains(self):
+        code = "fn test(p: mmio<u8>, q: ram<u32>) -> Status"
+        tokens = Lexer(code).tokenize()
+        types = [t.type for t in tokens]
+        self.assertIn(TokenType.MMIO, types)
+        self.assertIn(TokenType.RAM, types)
+        self.assertIn(TokenType.LANGLE, types)
+        self.assertIn(TokenType.RANGLE, types)
+
+    def test_lexer_tokenizes_invariants(self):
+        code = "fn step(x: u32) -> u32 pre: x > 0 post: ret >= x preserves: [RBP, RSP]"
+        tokens = Lexer(code).tokenize()
+        types = [t.type for t in tokens]
+        self.assertIn(TokenType.PRE, types)
+        self.assertIn(TokenType.POST, types)
+        self.assertIn(TokenType.PRESERVES, types)
+
+    def test_parse_pb010_module(self):
+        tokens = Lexer(self.source).tokenize()
+        parser = Parser(tokens)
+        mod = parser.parse_module()
+
+        self.assertEqual(mod.name, "proofboot.pb010")
+        fn_names = [d.name for d in mod.declarations if hasattr(d, "name") and hasattr(d, "contracts")]
+
+        self.assertIn("crc32", fn_names)
+        self.assertIn("constant_time_eq", fn_names)
+        self.assertIn("parse_header", fn_names)
+        self.assertIn("arbitrate_active_header", fn_names)
+        self.assertIn("commit_transition", fn_names)
+
+        # Check explicit contracts extracted on commit_transition
+        commit_fn = next(d for d in mod.declarations if getattr(d, "name", None) == "commit_transition")
+        contract_kinds = [c.kind for c in commit_fn.contracts]
+        self.assertIn("pre", contract_kinds)
+        self.assertIn("post", contract_kinds)
+
+
+if __name__ == "__main__":
+    unittest.main()
