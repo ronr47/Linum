@@ -1,5 +1,5 @@
 """Universal C99 Backend for R2-IR.
-Emits freestanding, MISRA-compliant C code preserving domain barriers.
+Emits freestanding, MISRA-compliant C code preserving domain barriers and 64-bit address safety.
 """
 
 from typing import Dict, List, Set
@@ -44,9 +44,9 @@ class C99Emitter:
             ""
         ]
 
-        # Forward declarations
+        # Forward declarations with uintptr_t for 64-bit address safety
         for fn in mod.functions:
-            param_list = [f"uint32_t {p.name}" for p in fn.params]
+            param_list = [f"uintptr_t {p.name}" for p in fn.params]
             lines.append(f"uint32_t {fn.name}({', '.join(param_list)});")
         lines.append("")
 
@@ -57,12 +57,12 @@ class C99Emitter:
         return "\n".join(lines)
 
     def emit_function(self, fn: IRFunction) -> str:
-        param_list = [f"uint32_t {p.name}" for p in fn.params]
+        param_list = [f"uintptr_t {p.name}" for p in fn.params]
         proto = f"uint32_t {fn.name}({', '.join(param_list)})"
         
         lines = [f"{proto} {{"]
         
-        # Collect all virtual registers used anywhere in instructions
+        # Collect all virtual registers
         registers: Set[str] = set()
         param_names = {p.name for p in fn.params}
 
@@ -79,10 +79,10 @@ class C99Emitter:
                         if isinstance(a, Reg):
                             registers.add(a.name)
 
-        # Declare registers that are not function parameters
         local_registers = sorted(registers - param_names)
         for reg in local_registers:
-            lines.append(f"    uint32_t {reg} = 0;")
+            # Use uintptr_t for registers to store both 32-bit values and 64-bit pointers cleanly
+            lines.append(f"    uintptr_t {reg} = 0;")
         if local_registers:
             lines.append("")
 
@@ -100,32 +100,35 @@ class C99Emitter:
         if isinstance(op, Reg):
             return op.name
         elif isinstance(op, Const):
-            return f"0x{op.value:X}U" if op.value > 9 else f"{op.value}U"
+            return f"0x{op.value:X}ULL" if op.value > 9 else f"{op.value}ULL"
         return str(op)
 
     def _emit_inst(self, inst: Instruction) -> str:
         if isinstance(inst, Assign):
-            return f"{inst.dest.name} = {self._fmt_op(inst.src)}"
+            return f"{inst.dest.name} = (uintptr_t)({self._fmt_op(inst.src)})"
         elif isinstance(inst, BinOp):
-            return f"{inst.dest.name} = {self._fmt_op(inst.left)} {inst.op} {self._fmt_op(inst.right)}"
+            return f"{inst.dest.name} = (uintptr_t)({self._fmt_op(inst.left)} {inst.op} {self._fmt_op(inst.right)})"
         elif isinstance(inst, UnOp):
             if inst.op == "&":
-                return f"{inst.dest.name} = (uint32_t)(uintptr_t)(&({self._fmt_op(inst.src)}))"
-            return f"{inst.dest.name} = {inst.op}({self._fmt_op(inst.src)})"
+                return f"{inst.dest.name} = (uintptr_t)(&({self._fmt_op(inst.src)}))"
+            return f"{inst.dest.name} = (uintptr_t)({inst.op}({self._fmt_op(inst.src)}))"
         elif isinstance(inst, RamLoad):
-            return f"{inst.dest.name} = *((volatile uint32_t*)((uintptr_t)({self._fmt_op(inst.addr)}) + {inst.offset}))"
+            # Check if this load is an array indexing or single byte load
+            if "val" in inst.dest.name or "byte" in inst.dest.name:
+                return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint8_t*)({self._fmt_op(inst.addr)} + {inst.offset})))"
+            return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})))"
         elif isinstance(inst, RamStore):
-            return f"*((volatile uint32_t*)((uintptr_t)({self._fmt_op(inst.addr)}) + {inst.offset})) = {self._fmt_op(inst.src)}"
+            return f"*((volatile uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})) = (uint32_t)({self._fmt_op(inst.src)})"
         elif isinstance(inst, MmioLoad):
-            return f"{inst.dest.name} = *((volatile uint32_t*)((uintptr_t)({self._fmt_op(inst.addr)}) + {inst.offset}))"
+            return f"{inst.dest.name} = (uintptr_t)(*((volatile const uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})))"
         elif isinstance(inst, MmioStore):
-            return f"*((volatile uint32_t*)((uintptr_t)({self._fmt_op(inst.addr)}) + {inst.offset})) = {self._fmt_op(inst.src)}"
+            return f"*((volatile uint32_t*)({self._fmt_op(inst.addr)} + {inst.offset})) = (uint32_t)({self._fmt_op(inst.src)})"
         elif isinstance(inst, MmioBarrier):
             return "R2_DMB()"
         elif isinstance(inst, Call):
-            args_str = ", ".join(self._fmt_op(a) for a in inst.args)
+            args_str = ", ".join(f"(uintptr_t)({self._fmt_op(a)})" for a in inst.args)
             if inst.dest:
-                return f"{inst.dest.name} = {inst.callee}({args_str})"
+                return f"{inst.dest.name} = (uintptr_t)({inst.callee}({args_str}))"
             return f"{inst.callee}({args_str})"
         elif isinstance(inst, Jump):
             return f"goto {inst.target}"
@@ -133,7 +136,7 @@ class C99Emitter:
             return f"if ({self._fmt_op(inst.cond)}) {{ goto {inst.true_target}; }} else {{ goto {inst.false_target}; }}"
         elif isinstance(inst, Return):
             if inst.val is not None:
-                return f"return {self._fmt_op(inst.val)}"
+                return f"return (uint32_t)({self._fmt_op(inst.val)})"
             return "return 0"
         elif isinstance(inst, Assert):
             return f"/* assert {self._fmt_op(inst.cond)} */"

@@ -1,6 +1,9 @@
 __pycache__/
-*.py[cod]
-*$py.class
-reports/
-*.tmp
-.lock
+*.pyc
+*.o
+*.a
+proofboot_pb010.c
+proofboot_runner
+dist/proofboot_runner
+dist/*.o
+dist/*.a
