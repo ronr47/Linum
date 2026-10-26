@@ -15,6 +15,7 @@ from src.frontend.parser import Parser
 from src.semantic.analyzer import SemanticAnalyzer
 from src.lowering.lowerer import Lowerer
 from src.lowering.printer import format_ir_module
+from src.backend.c99 import C99Emitter
 
 def compile_source(source_path: Path, args: argparse.Namespace) -> int:
     if not source_path.exists():
@@ -48,14 +49,23 @@ def compile_source(source_path: Path, args: argparse.Namespace) -> int:
     lowerer = Lowerer()
     ir_module = lowerer.lower_module(module_ast)
 
-    if args.emit_ir or not args.output:
-        print(format_ir_module(ir_module))
+    # Stage 3: Code Emission
+    if args.emit_c:
+        code = C99Emitter().emit_module(ir_module)
+        if args.output:
+            Path(args.output).write_text(code, encoding="utf-8")
+            print(f"[OK] C99 code written to {args.output}")
+        else:
+            print(code)
         return 0
 
+    # Default to IR emission
+    ir_text = format_ir_module(ir_module)
     if args.output:
-        out_path = Path(args.output)
-        out_path.write_text(format_ir_module(ir_module), encoding="utf-8")
-        print(f"[OK] IR written to {out_path}")
+        Path(args.output).write_text(ir_text, encoding="utf-8")
+        print(f"[OK] IR written to {args.output}")
+    else:
+        print(ir_text)
 
     return 0
 
@@ -66,6 +76,7 @@ def main() -> None:
     ap.add_argument("--dump-ast", action="store_true", help="Print parsed AST declarations and exit")
     ap.add_argument("--check", action="store_true", help="Run semantic checks without lowering")
     ap.add_argument("--emit-ir", action="store_true", help="Emit linear R2-IR to stdout")
+    ap.add_argument("--emit-c", action="store_true", help="Emit portable C99 source")
     ap.add_argument("-o", "--output", type=str, help="Output destination file")
 
     args = ap.parse_args()

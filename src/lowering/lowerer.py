@@ -6,7 +6,7 @@ from src.ast.nodes import (
     LetStmt, TupleLetStmt, AssignStmt, ReturnStmt, WhileStmt, IfStmt,
     IfExpr, CallExpr, IndexExpr, FieldExpr, CastExpr, BinaryOp, UnaryOp,
     Identifier, IntLiteral, ByteLiteral, BoolLiteral, StructInitExpr,
-    DerefExpr, UnsafeExpr
+    DerefExpr, UnsafeExpr, ArrayRepeatExpr, TupleExpr
 )
 from src.lowering.ir import (
     Reg, Const, Operand, Instruction, Assign, BinOp, UnOp,
@@ -65,7 +65,7 @@ class Lowerer:
 
         # Fallback return if not terminated
         if not self.current_bb.instructions or not isinstance(self.current_bb.instructions[-1], Return):
-            self.current_bb.append(Return(None))
+            self.current_bb.append(Return(Const(0)))
 
         return ir_func
 
@@ -160,6 +160,8 @@ class Lowerer:
             if "::" in expr.name or expr.name.isupper():
                 return Const(1 if "Ok" in expr.name else 0)
             r = self.new_reg(prefix=expr.name + "_")
+            self.current_bb.append(Assign(dest=r, src=Const(0)))
+            self.var_map[expr.name] = r
             return r
 
         elif isinstance(expr, BinaryOp):
@@ -188,16 +190,38 @@ class Lowerer:
             return self._lower_expr(expr.expr)
 
         elif isinstance(expr, FieldExpr):
+            # Built-in slice conversion helper
+            if expr.field == "as_ram":
+                return self._lower_expr(expr.target)
             target_op = self._lower_expr(expr.target)
             dest = self.new_reg(prefix=f"{expr.field}_")
             self.current_bb.append(RamLoad(dest=dest, addr=target_op, offset=0))
             return dest
 
+        elif isinstance(expr, IndexExpr):
+            target_op = self._lower_expr(expr.target)
+            idx_op = self._lower_expr(expr.index)
+            addr_reg = self.new_reg("idx_addr")
+            self.current_bb.append(BinOp(dest=addr_reg, op="+", left=target_op, right=idx_op))
+            dest = self.new_reg("val")
+            self.current_bb.append(RamLoad(dest=dest, addr=addr_reg, offset=0))
+            return dest
+
         elif isinstance(expr, CallExpr):
-            callee_name = expr.callee.name if hasattr(expr.callee, "name") else str(expr.callee)
+            # Check for method calls: (x.as_ram)()
+            if isinstance(expr.callee, FieldExpr):
+                if expr.callee.field == "as_ram":
+                    return self._lower_expr(expr.callee.target)
+                callee_name = expr.callee.field
+            elif hasattr(expr.callee, "name"):
+                callee_name = expr.callee.name
+            else:
+                callee_name = str(expr.callee)
+
             if callee_name in ("mmio_write_barrier", "mmio_flush"):
                 self.current_bb.append(MmioBarrier("write"))
                 return Const(0)
+
             arg_ops = [self._lower_expr(a) for a in expr.args]
             dest = self.new_reg()
             self.current_bb.append(Call(dest=dest, callee=callee_name, args=arg_ops))
@@ -205,7 +229,22 @@ class Lowerer:
 
         elif isinstance(expr, StructInitExpr):
             dest = self.new_reg(prefix=f"{expr.struct_name}_")
+            self.current_bb.append(Assign(dest=dest, src=Const(0)))
+            return dest
+
+        elif isinstance(expr, ArrayRepeatExpr):
+            dest = self.new_reg("arr")
+            self.current_bb.append(Assign(dest=dest, src=Const(0)))
+            return dest
+
+        elif isinstance(expr, TupleExpr):
+            # Flatten tuple to first element or status
+            if expr.elements:
+                return self._lower_expr(expr.elements[0])
+            dest = self.new_reg("tup")
+            self.current_bb.append(Assign(dest=dest, src=Const(0)))
             return dest
 
         dest = self.new_reg()
+        self.current_bb.append(Assign(dest=dest, src=Const(0)))
         return dest
