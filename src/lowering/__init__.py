@@ -11,3 +11,7 @@ __all__ = [
     "Jump", "BranchIf", "Return", "Assert", "BasicBlock", "IRFunction", "IRModule",
     "Lowerer"
 ]
+
+from src.lowering.printer import format_ir_module, format_ir_function
+
+__all__ += ["format_ir_module", "format_ir_function"]
