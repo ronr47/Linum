@@ -5,8 +5,11 @@ from src.frontend.lexer import Token, TokenType
 from src.ast.nodes import (
     TypeRef, Expression, IntLiteral, ByteLiteral, BoolLiteral, Identifier,
     BinaryOp, UnaryOp, CastExpr, CallExpr, IndexExpr, FieldExpr,
+    UnsafeExpr, DerefExpr, TupleExpr, ArrayRepeatExpr,
     Statement, LetStmt, AssignStmt, WhileStmt, IfStmt, ReturnStmt,
-    Contract, FunctionDecl, StructDecl, StructField, Module
+    Contract, FunctionDecl, StructDecl, StructField, Module,
+    TupleLetStmt,
+    StructFieldInit, StructInitExpr, IfExpr,
 )
 
 
@@ -18,6 +21,12 @@ class Parser:
     def _peek(self, offset: int = 0) -> Token:
         idx = self.pos + offset
         return self.tokens[idx] if idx < len(self.tokens) else self.tokens[-1]
+
+    def _peek_ahead(self, offset: int = 1):
+        idx = self.pos + offset
+        if idx < len(self.tokens):
+            return self.tokens[idx]
+        return self.tokens[-1]
 
     def _match(self, *types: TokenType) -> bool:
         if self._peek().type in types:
@@ -35,16 +44,9 @@ class Parser:
     def parse_module(self) -> Module:
         mod_name = "main"
         if self._match(TokenType.MODULE):
-            parts = []
-            while True:
+            parts = [self._expect(TokenType.IDENT).value]
+            while self._match(TokenType.DOT):
                 parts.append(self._expect(TokenType.IDENT).value)
-                if self._match(TokenType.IDENT): # handle dot separated if tokenized
-                    continue
-                # Check for module separator
-                if self._peek().value == ".":
-                    self.pos += 1
-                    continue
-                break
             self._expect(TokenType.SEMICOLON)
             mod_name = ".".join(parts)
 
@@ -105,7 +107,10 @@ class Parser:
             return TypeRef(name=elem.name, is_array=True, array_size=sz_tok.value)
 
         tok = self._expect(TokenType.IDENT)
-        return TypeRef(name=tok.value)
+        name = tok.value
+        while self._match(TokenType.DCOLON):
+            name = f"{name}::{self._expect(TokenType.IDENT).value}"
+        return TypeRef(name=name)
 
     def _parse_struct(self) -> StructDecl:
         self._expect(TokenType.STRUCT)
@@ -176,6 +181,21 @@ class Parser:
 
         if self._match(TokenType.LET) or self._match(TokenType.VAR):
             is_var = (tok.type == TokenType.VAR)
+
+            if self._match(TokenType.LPAREN):
+                names = [self._expect(TokenType.IDENT).value]
+                while self._match(TokenType.COMMA):
+                    names.append(self._expect(TokenType.IDENT).value)
+                self._expect(TokenType.RPAREN)
+                self._expect(TokenType.ASSIGN)
+                init_expr = self._parse_expr()
+                self._expect(TokenType.SEMICOLON)
+                return TupleLetStmt(
+                    names=names,
+                    init=init_expr,
+                    is_var=is_var,
+                )
+
             name = self._expect(TokenType.IDENT).value
             t_ref = None
             if self._match(TokenType.COLON):
@@ -183,7 +203,12 @@ class Parser:
             self._expect(TokenType.ASSIGN)
             init_expr = self._parse_expr()
             self._expect(TokenType.SEMICOLON)
-            return LetStmt(name=name, type_ref=t_ref, init=init_expr, is_var=is_var)
+            return LetStmt(
+                name=name,
+                type_ref=t_ref,
+                init=init_expr,
+                is_var=is_var,
+            )
 
         if self._match(TokenType.WHILE):
             cond = self._parse_expr()
@@ -252,8 +277,17 @@ class Parser:
         return expr
 
     def _parse_bitwise(self) -> Expression:
-        expr = self._parse_unary()
+        expr = self._parse_multiplicative()
         while self._peek().type in (TokenType.BIT_OR, TokenType.BIT_AND, TokenType.BIT_XOR, TokenType.SHL, TokenType.SHR):
+            op = self._peek().value
+            self.pos += 1
+            right = self._parse_multiplicative()
+            expr = BinaryOp(left=expr, op=op, right=right)
+        return expr
+
+    def _parse_multiplicative(self) -> Expression:
+        expr = self._parse_unary()
+        while self._peek().type == TokenType.STAR:
             op = self._peek().value
             self.pos += 1
             right = self._parse_unary()
@@ -261,39 +295,144 @@ class Parser:
         return expr
 
     def _parse_unary(self) -> Expression:
-        if self._peek().type in (TokenType.BIT_NOT, TokenType.NOT, TokenType.SUB):
-            op = self._peek().value
-            self.pos += 1
+        if self._match(TokenType.UNSAFE):
+            self._expect(TokenType.LBRACE)
+            expr = self._parse_expr()
+            self._expect(TokenType.RBRACE)
+            return UnsafeExpr(expr=expr)
+
+        if self._match(TokenType.BIT_AND):
+            return UnaryOp(op="&", expr=self._parse_unary())
+
+        if self._match(
+            TokenType.BIT_NOT, TokenType.NOT, TokenType.SUB
+        ):
+            op = self.tokens[self.pos - 1].value
             return UnaryOp(op=op, expr=self._parse_unary())
-        return self._parse_primary()
 
-    def _parse_primary(self) -> Expression:
-        tok = self._peek()
+        if self._match(TokenType.STAR):
+            return DerefExpr(expr=self._parse_unary())
 
-        if self._match(TokenType.INT_LIT):
-            return IntLiteral(value=tok.value)
-        if self._match(TokenType.BYTE_LIT):
-            return ByteLiteral(value=tok.value)
-        if self._match(TokenType.BOOL_LIT):
-            return BoolLiteral(value=tok.value)
+        return self._parse_postfix()
 
-        if self._match(TokenType.IDENT):
-            name = tok.value
-            if self._match(TokenType.LPAREN):
+    def _parse_postfix(self) -> Expression:
+        expr = self._parse_primary()
+        while True:
+            if self._match(TokenType.LBRACKET):
+                idx = self._parse_expr()
+                self._expect(TokenType.RBRACKET)
+                expr = IndexExpr(target=expr, index=idx)
+            elif self._match(TokenType.LPAREN):
                 args = []
                 while self._peek().type not in (TokenType.RPAREN, TokenType.EOF):
                     args.append(self._parse_expr())
                     if not self._match(TokenType.COMMA):
                         break
                 self._expect(TokenType.RPAREN)
-                return CallExpr(callee=name, args=args)
-            return Identifier(name=name)
+                expr = CallExpr(callee=expr, args=args)
+            elif self._match(TokenType.DOT):
+                f_name = self._expect(TokenType.IDENT).value
+                expr = FieldExpr(target=expr, field=f_name)
+            elif self._match(TokenType.AS):
+                target_type = self._parse_type()
+                expr = CastExpr(expr=expr, target_type=target_type)
+            else:
+                break
+        return expr
 
-        if self._match(TokenType.LPAREN):
-            e = self._parse_expr()
+    def _parse_primary(self) -> Expression:
+        if self._match(TokenType.IF):
+            cond = self._parse_expr()
+            self._expect(TokenType.LBRACE)
+            then_body = []
+            while not self._match(TokenType.RBRACE):
+                if self._peek().type == TokenType.EOF:
+                    raise SyntaxError(f"Unterminated block in if-expression at {self._peek().line}:{self._peek().col}")
+                if self._peek().type in (TokenType.LET, TokenType.RETURN, TokenType.WHILE):
+                    then_body.append(self._parse_statement())
+                else:
+                    expr_item = self._parse_expr()
+                    self._match(TokenType.SEMICOLON)
+                    then_body.append(expr_item)
+            else_body = None
+            if self._match(TokenType.ELSE):
+                if self._peek().type == TokenType.IF:
+                    else_body = [self._parse_primary()]
+                else:
+                    self._expect(TokenType.LBRACE)
+                    else_body = []
+                    while not self._match(TokenType.RBRACE):
+                        if self._peek().type == TokenType.EOF:
+                            raise SyntaxError(f"Unterminated else block in if-expression at {self._peek().line}:{self._peek().col}")
+                        if self._peek().type in (TokenType.LET, TokenType.RETURN, TokenType.WHILE):
+                            else_body.append(self._parse_statement())
+                        else:
+                            expr_item = self._parse_expr()
+                            self._match(TokenType.SEMICOLON)
+                            else_body.append(expr_item)
+            return IfExpr(cond=cond, then_branch=then_body, else_branch=else_body)
+
+        tok = self._peek()
+        if self._match(TokenType.INT_LIT):
+            return IntLiteral(value=tok.value)
+        elif self._match(TokenType.BYTE_LIT):
+            return ByteLiteral(value=tok.value)
+        elif self._match(TokenType.BOOL_LIT):
+            return BoolLiteral(value=tok.value)
+        elif self._match(TokenType.IDENT):
+            name = tok.value
+            while self._match(TokenType.DCOLON):
+                name = f"{name}::{self._expect(TokenType.IDENT).value}"
+
+            is_struct = False
+            if self._peek().type == TokenType.LBRACE:
+                t1 = self._peek_ahead(1)
+                t2 = self._peek_ahead(2)
+                if t1.type == TokenType.RBRACE or (t1.type == TokenType.IDENT and t2.type == TokenType.COLON):
+                    is_struct = True
+
+            if is_struct and self._match(TokenType.LBRACE):
+                fields = []
+                while self._peek().type not in (TokenType.RBRACE, TokenType.EOF):
+                    f_name = self._expect(TokenType.IDENT).value
+                    self._expect(TokenType.COLON)
+                    f_val = self._parse_expr()
+                    fields.append(StructFieldInit(name=f_name, value=f_val))
+                    if not self._match(TokenType.COMMA):
+                        break
+                self._expect(TokenType.RBRACE)
+                return StructInitExpr(struct_name=name, fields=fields)
+            else:
+                return Identifier(name=name)
+        elif self._match(TokenType.LPAREN):
+            # Empty tuple ()
+            if self._match(TokenType.RPAREN):
+                return TupleExpr(elements=[]) if "TupleExpr" else None
+            first_expr = self._parse_expr()
+            if self._match(TokenType.COMMA):
+                elements = [first_expr]
+                while not self._match(TokenType.RPAREN):
+                    elements.append(self._parse_expr())
+                    if not self._match(TokenType.COMMA):
+                        self._expect(TokenType.RPAREN)
+                        break
+                return TupleExpr(elements=elements)
             self._expect(TokenType.RPAREN)
-            return e
-
-        # Fallback for unparsed expressions
-        self.pos += 1
-        return Identifier(name=f"/* raw:{tok.value} */")
+            return first_expr
+        elif self._match(TokenType.LBRACKET):
+            elements = []
+            while self._peek().type not in (TokenType.RBRACKET, TokenType.EOF):
+                elem = self._parse_expr()
+                if self._match(TokenType.SEMICOLON):
+                    count_expr = self._parse_expr()
+                    self._expect(TokenType.RBRACKET)
+                    return ArrayRepeatExpr(value=elem, count=count_expr)
+                elements.append(elem)
+                if not self._match(TokenType.COMMA):
+                    break
+            self._expect(TokenType.RBRACKET)
+            return ArrayLiteral(elements=elements)
+        else:
+            raise SyntaxError(
+                f"Expected expression at line {tok.line}:{tok.col}, got {tok.type.name} ({tok.value})"
+            )

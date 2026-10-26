@@ -75,8 +75,48 @@ class FieldExpr(Expression):
 
 
 @dataclass
+class UnsafeExpr(Expression):
+    expr: Expression
+
+
+@dataclass
+class DerefExpr(Expression):
+    expr: Expression
+
+
+@dataclass
+class TupleExpr(Expression):
+    elements: List[Expression]
+
+
+@dataclass
+class ArrayRepeatExpr(Expression):
+    value: Expression
+    count: Expression
+
+
+@dataclass
+class StructFieldInit:
+    name: str
+    value: Expression
+
+
+@dataclass
+class StructInitExpr(Expression):
+    struct_name: str
+    fields: List[StructFieldInit]
+
+
+@dataclass
 class Statement:
     pass
+
+
+@dataclass
+class TupleLetStmt(Statement):
+    names: List[str]
+    init: Expression
+    is_var: bool = False
 
 
 @dataclass
@@ -100,6 +140,15 @@ class WhileStmt(Statement):
 
 
 @dataclass
+@dataclass
+class IfExpr(Expression):
+    cond: Expression
+    then_branch: List[Union[Statement, Expression]]
+    else_branch: Optional[List[Union[Statement, Expression]]] = None
+
+@dataclass
+
+
 class IfStmt(Statement):
     cond: Expression
     then_branch: List[Statement]

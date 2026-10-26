@@ -46,7 +46,9 @@ class TokenType(enum.Enum):
     LANGLE = "<"
     RANGLE = ">"
     COMMA = ","
+    DOT = "."
     COLON = ":"
+    DCOLON = "::"
     SEMICOLON = ";"
     ARROW = "->"
     ATTR = "#"
@@ -63,6 +65,7 @@ class TokenType(enum.Enum):
     BIT_AND = "&"
     BIT_XOR = "^"
     BIT_NOT = "~"
+    STAR = "*"
     SHL = "<<"
     SHR = ">>"
     NOT = "!"
@@ -190,6 +193,10 @@ class Lexer:
                 continue
 
             # Multi-character operators
+            if ch == ":" and self._peek(1) == ":":
+                self._advance(); self._advance()
+                tokens.append(Token(TokenType.DCOLON, "::", start_line, start_col))
+                continue
             if ch == "-" and self._peek(1) == ">":
                 self._advance(); self._advance()
                 tokens.append(Token(TokenType.ARROW, "->", start_line, start_col))
@@ -230,6 +237,7 @@ class Lexer:
                 "<": TokenType.LANGLE,
                 ">": TokenType.RANGLE,
                 ",": TokenType.COMMA,
+                ".": TokenType.DOT,
                 ":": TokenType.COLON,
                 ";": TokenType.SEMICOLON,
                 "#": TokenType.ATTR,
@@ -240,6 +248,7 @@ class Lexer:
                 "&": TokenType.BIT_AND,
                 "^": TokenType.BIT_XOR,
                 "~": TokenType.BIT_NOT,
+                "*": TokenType.STAR,
                 "!": TokenType.NOT,
             }
             if ch in single:
