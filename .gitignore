@@ -7,3 +7,4 @@ proofboot_runner
 dist/proofboot_runner
 dist/*.o
 dist/*.a
+dist/proofboot_runner_x86_64
