@@ -55,3 +55,114 @@ class TestStage1Semantic(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    def test_reject_undefined_variable_in_body(self):
+        bad_src = """
+        fn bad_scope() -> u32 {
+            let x: u32 = undefined_var + 1;
+            return x;
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_while_condition_non_bool(self):
+        bad_src = """
+        fn non_bool_while() -> void {
+            while 42 {
+                let y: u32 = 0;
+            }
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_struct_field_not_found(self):
+        bad_src = """
+        struct Config { size: u32, }
+        fn bad_field(cfg: Config) -> u32 {
+            return cfg.unknown_field;
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_undefined_variable_in_body(self):
+        bad_src = """
+        fn bad_scope() -> u32 {
+            let x: u32 = undefined_var + 1;
+            return x;
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_while_condition_non_bool(self):
+        bad_src = """
+        fn non_bool_while() -> void {
+            while 42 {
+                let y: u32 = 0;
+            }
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_struct_field_not_found(self):
+        bad_src = """
+        struct Config { size: u32, }
+        fn bad_field(cfg: Config) -> u32 {
+            return cfg.unknown_field;
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_undefined_variable_in_body(self):
+        bad_src = """
+        fn bad_scope() -> u32 {
+            let x: u32 = undefined_var + 1;
+            return x;
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_while_condition_non_bool(self):
+        bad_src = """
+        fn non_bool_while() -> void {
+            while 42 {
+                let y: u32 = 0;
+            }
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)
+
+    def test_reject_struct_field_not_found(self):
+        bad_src = """
+        struct Config { size: u32, }
+        fn bad_field(cfg: Config) -> u32 {
+            return cfg.unknown_field;
+        }
+        """
+        mod = Parser(Lexer(bad_src).tokenize()).parse_module()
+        analyzer = SemanticAnalyzer()
+        with self.assertRaises(SemanticError):
+            analyzer.analyze_module(mod)

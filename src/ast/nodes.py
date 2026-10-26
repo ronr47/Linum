@@ -1,7 +1,7 @@
 """AST node definitions for R2 Core."""
 
 from dataclasses import dataclass
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 
 
 @dataclass
